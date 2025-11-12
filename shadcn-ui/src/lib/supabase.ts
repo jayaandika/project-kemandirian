@@ -7,6 +7,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const TABLE_NAME = 'app_d799d0ed4d_assessments';
 
+// Fixed user_id for all devices - everyone shares the same data
+const GLOBAL_USER_ID = 'admin_user_001';
+
 export interface Assessment {
   id: string;
   user_id: string;
@@ -61,14 +64,9 @@ interface LocalStorageAssessment {
   status: string;
 }
 
-// Helper function to get current user ID (from localStorage for now)
+// Helper function to get current user ID - now returns fixed global ID
 export const getCurrentUserId = (): string => {
-  let userId = localStorage.getItem('user_id');
-  if (!userId) {
-    userId = 'user_' + Math.random().toString(36).substring(2, 15);
-    localStorage.setItem('user_id', userId);
-  }
-  return userId;
+  return GLOBAL_USER_ID;
 };
 
 // Fetch all assessments for current user
@@ -151,11 +149,13 @@ export const migrateLocalStorageToSupabase = async (): Promise<number> => {
 
     const userId = getCurrentUserId();
 
-    // Check if data already migrated
+    // Check if data already migrated by checking if any of the IDs exist
+    const localIds = assessments.map(a => a.id);
     const { data: existingData } = await supabase
       .from(TABLE_NAME)
       .select('id')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .in('id', localIds);
 
     if (existingData && existingData.length > 0) {
       console.log('Data already migrated');

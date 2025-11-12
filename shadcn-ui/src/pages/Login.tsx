@@ -1,93 +1,70 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { login } from '@/lib/auth';
-import { Lock, User } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    const user = login(username, password);
-    if (user) {
+    
+    if (username === 'admin' && password === 'admin123') {
+      localStorage.setItem('isAuthenticated', 'true');
+      toast.success('Login berhasil!');
       navigate('/dashboard');
     } else {
-      setError('Username atau password salah');
+      toast.error('Username atau password salah');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex justify-center mb-4">
-            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <Lock className="h-8 w-8 text-primary" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl text-center">Login Admin</CardTitle>
-          <CardDescription className="text-center">
-            Sistem Penilaian Kemandirian
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <Card className="w-full max-w-md shadow-2xl">
+        <CardHeader className="space-y-3 text-center">
+          <CardTitle className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Assessment Lansia
+          </CardTitle>
+          <CardDescription className="text-base sm:text-lg">
+            Sistem Penilaian Kemandirian Lansia
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="username"
-                  type="text"
-                  placeholder="Masukkan username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
+              <label className="text-sm font-medium">Username</label>
+              <Input
+                type="text"
+                placeholder="Masukkan username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="h-11"
+              />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Masukkan password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
+              <label className="text-sm font-medium">Password</label>
+              <Input
+                type="password"
+                placeholder="Masukkan password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-11"
+              />
             </div>
-
-            <Button type="submit" className="w-full" size="lg">
+            <Button type="submit" className="w-full h-11 text-base font-semibold">
               Login
             </Button>
-
-            <div className="text-sm text-center text-gray-500 mt-4">
-              <p>Demo credentials:</p>
-              <p className="font-mono">Username: admin</p>
-              <p className="font-mono">Password: admin123</p>
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-gray-700 font-medium mb-2">Demo Credentials:</p>
+              <p className="text-sm text-gray-600">Username: <span className="font-mono font-semibold">admin</span></p>
+              <p className="text-sm text-gray-600">Password: <span className="font-mono font-semibold">admin123</span></p>
+              <p className="text-xs text-gray-500 mt-3">
+                💡 <strong>Catatan:</strong> Semua device yang login akan melihat data yang sama (shared database)
+              </p>
             </div>
           </form>
         </CardContent>

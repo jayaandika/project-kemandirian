@@ -132,7 +132,7 @@ export default function AssessmentForm() {
       await saveAssessment(assessment);
 
       toast.success('Assessment berhasil disimpan!', {
-        description: 'Data telah tersimpan di cloud dan dapat dilihat di riwayat assessment',
+        description: 'Data telah tersimpan di cloud dan dapat diakses dari semua device',
       });
       
       setTimeout(() => {
@@ -149,7 +149,7 @@ export default function AssessmentForm() {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto px-2 sm:px-0">
       <div className="flex items-center gap-2 sm:gap-4">
         <Button 
           variant="ghost" 
@@ -159,7 +159,7 @@ export default function AssessmentForm() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
             Tambah Assessment
           </h2>
