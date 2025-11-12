@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import DashboardHome from './pages/DashboardHome';
 import AssessmentForm from './pages/AssessmentForm';
 import AssessmentHistory from './pages/AssessmentHistory';
+import UserManagement from './pages/UserManagement';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import NotFound from './pages/NotFound';
@@ -33,6 +34,7 @@ const App = () => (
               <Route index element={<DashboardHome />} />
               <Route path="assessment" element={<AssessmentForm />} />
               <Route path="history" element={<AssessmentHistory />} />
+              <Route path="users" element={<UserManagement />} />
               <Route path="profile" element={<Profile />} />
             </Route>
             <Route path="/" element={<Navigate to="/login" replace />} />

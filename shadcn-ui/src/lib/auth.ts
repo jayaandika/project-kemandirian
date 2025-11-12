@@ -1,3 +1,5 @@
+import { fetchUserByUsername, type User as SupabaseUser } from './supabase';
+
 export interface User {
   id: string;
   username: string;
@@ -5,25 +7,34 @@ export interface User {
   name: string;
 }
 
-const ADMIN_CREDENTIALS = {
-  username: 'admin',
-  password: 'admin123',
-  name: 'Administrator',
-  role: 'admin',
-};
+export const login = async (username: string, password: string): Promise<User | null> => {
+  try {
+    // Fetch user from Supabase
+    const user = await fetchUserByUsername(username);
+    
+    if (!user) {
+      return null;
+    }
 
-export const login = (username: string, password: string): User | null => {
-  if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-    const user: User = {
-      id: '1',
-      username: ADMIN_CREDENTIALS.username,
-      role: ADMIN_CREDENTIALS.role,
-      name: ADMIN_CREDENTIALS.name,
+    // Verify password (plain text comparison - in production, use hashed passwords)
+    if (user.password !== password) {
+      return null;
+    }
+
+    // Create user session
+    const sessionUser: User = {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      name: user.name,
     };
-    localStorage.setItem('user', JSON.stringify(user));
-    return user;
+
+    localStorage.setItem('user', JSON.stringify(sessionUser));
+    return sessionUser;
+  } catch (error) {
+    console.error('Login error:', error);
+    return null;
   }
-  return null;
 };
 
 export const logout = () => {
@@ -44,4 +55,9 @@ export const getCurrentUser = (): User | null => {
 
 export const isAuthenticated = (): boolean => {
   return getCurrentUser() !== null;
+};
+
+export const isAdmin = (): boolean => {
+  const user = getCurrentUser();
+  return user?.role === 'admin';
 };

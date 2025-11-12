@@ -1,13 +1,14 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogOut, Home, ClipboardList, FileText } from 'lucide-react';
+import { LogOut, Home, ClipboardList, FileText, Users } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { logout } from '@/lib/auth';
+import { logout, isAdmin } from '@/lib/auth';
 import { toast } from 'sonner';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
+  const userIsAdmin = isAdmin();
 
   const handleLogout = () => {
     logout();
@@ -71,6 +72,16 @@ export default function Dashboard() {
             <FileText className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
             <span className="hidden sm:inline">Riwayat</span>
           </Button>
+          {userIsAdmin && (
+            <Button
+              variant={isActive('/dashboard/users') ? 'default' : 'outline'}
+              onClick={() => navigate('/dashboard/users')}
+              className="flex-shrink-0 text-xs sm:text-sm px-3 sm:px-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0"
+            >
+              <Users className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Kelola User</span>
+            </Button>
+          )}
         </div>
 
         <Outlet />

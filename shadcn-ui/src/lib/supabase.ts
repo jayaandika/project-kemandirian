@@ -6,6 +6,7 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const TABLE_NAME = 'app_d799d0ed4d_assessments';
+const USERS_TABLE = 'app_d799d0ed4d_users';
 
 // Fixed user_id for all devices - everyone shares the same data
 const GLOBAL_USER_ID = 'admin_user_001';
@@ -41,6 +42,16 @@ export interface Assessment {
   aiks_score: number;
   barthel_score: number;
   status: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  password: string;
+  name: string;
+  role: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -190,6 +201,89 @@ export const migrateLocalStorageToSupabase = async (): Promise<number> => {
     return assessments.length;
   } catch (error) {
     console.error('Error during migration:', error);
+    throw error;
+  }
+};
+
+// ========== USER MANAGEMENT FUNCTIONS ==========
+
+// Fetch all users
+export const fetchUsers = async (): Promise<User[]> => {
+  const { data, error } = await supabase
+    .from(USERS_TABLE)
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching users:', error);
+    throw error;
+  }
+
+  return data || [];
+};
+
+// Fetch user by username (for login)
+export const fetchUserByUsername = async (username: string): Promise<User | null> => {
+  const { data, error } = await supabase
+    .from(USERS_TABLE)
+    .select('*')
+    .eq('username', username)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // No rows returned
+      return null;
+    }
+    console.error('Error fetching user:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+// Create a new user
+export const createUser = async (user: Omit<User, 'id' | 'created_at' | 'updated_at'>): Promise<User> => {
+  const { data, error } = await supabase
+    .from(USERS_TABLE)
+    .insert([user])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating user:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+// Update an existing user
+export const updateUser = async (id: string, user: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>): Promise<User> => {
+  const { data, error } = await supabase
+    .from(USERS_TABLE)
+    .update({ ...user, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating user:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+// Delete a user
+export const deleteUser = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from(USERS_TABLE)
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting user:', error);
     throw error;
   }
 };
