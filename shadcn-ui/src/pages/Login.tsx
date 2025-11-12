@@ -4,21 +4,36 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { login } from '@/lib/auth';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    if (username === 'admin' && password === 'admin123') {
+    // Use the auth.ts login function
+    const user = login(username, password);
+    
+    if (user) {
+      // Also set isAuthenticated for backward compatibility
       localStorage.setItem('isAuthenticated', 'true');
-      toast.success('Login berhasil!');
-      navigate('/dashboard');
+      toast.success('Login berhasil!', {
+        description: `Selamat datang, ${user.name}`,
+      });
+      
+      // Small delay to ensure localStorage is set before navigation
+      setTimeout(() => {
+        navigate('/dashboard', { replace: true });
+        setIsLoading(false);
+      }, 100);
     } else {
       toast.error('Username atau password salah');
+      setIsLoading(false);
     }
   };
 
@@ -43,6 +58,8 @@ export default function Login() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="h-11"
+                disabled={isLoading}
+                required
               />
             </div>
             <div className="space-y-2">
@@ -53,10 +70,16 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="h-11"
+                disabled={isLoading}
+                required
               />
             </div>
-            <Button type="submit" className="w-full h-11 text-base font-semibold">
-              Login
+            <Button 
+              type="submit" 
+              className="w-full h-11 text-base font-semibold"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Memproses...' : 'Login'}
             </Button>
             <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm text-gray-700 font-medium mb-2">Demo Credentials:</p>

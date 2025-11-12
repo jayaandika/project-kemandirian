@@ -2,14 +2,18 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { LogOut, Home, ClipboardList, FileText } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { logout } from '@/lib/auth';
+import { toast } from 'sonner';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = () => {
+    logout();
     localStorage.removeItem('isAuthenticated');
-    navigate('/');
+    toast.success('Logout berhasil');
+    navigate('/login', { replace: true });
   };
 
   const isActive = (path: string) => {
