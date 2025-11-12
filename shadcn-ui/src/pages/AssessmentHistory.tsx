@@ -38,7 +38,15 @@ interface Assessment {
     pekerjaan?: string;
     statusPernikahan?: string;
     pendidikanTerakhir?: string;
-    penyakitKronis?: string;
+    penyakitKronis?: string[];
+    penyakitKronisLainnya?: string;
+    lamaPenyakitKronis?: string;
+    kontrolRutin?: string;
+    frekuensiKontrol?: string;
+    kepemilikanAsuransi?: string;
+    kepemilikanKendaraan?: string;
+    kendalaTransportasi?: string;
+    detailKendalaTransportasi?: string;
   };
   aksScores: Record<string, number>;
   aiksScores: Record<string, number>;
@@ -129,6 +137,39 @@ export default function AssessmentHistory() {
     return pendidikanMap[pendidikan] || pendidikan;
   };
 
+  const formatLamaPenyakit = (lama?: string) => {
+    if (!lama) return '-';
+    const lamaMap: Record<string, string> = {
+      'kurang-1-tahun': '< 1 tahun',
+      '1-5-tahun': '1-5 tahun',
+      '5-10-tahun': '5-10 tahun',
+      'lebih-10-tahun': '> 10 tahun',
+    };
+    return lamaMap[lama] || lama;
+  };
+
+  const formatKendaraan = (kendaraan?: string) => {
+    if (!kendaraan) return '-';
+    const kendaraanMap: Record<string, string> = {
+      'mobil': 'Memiliki Mobil',
+      'motor': 'Memiliki Sepeda Motor',
+      'mobil-motor': 'Memiliki Mobil dan Sepeda Motor',
+      'tidak-memiliki': 'Tidak Memiliki',
+    };
+    return kendaraanMap[kendaraan] || kendaraan;
+  };
+
+  const formatAsuransi = (asuransi?: string) => {
+    if (!asuransi) return '-';
+    const asuransiMap: Record<string, string> = {
+      'bpjs-mandiri': 'BPJS Kesehatan Mandiri',
+      'bpjs-pegawai': 'BPJS Kesehatan Pegawai/Pensiunan',
+      'bpjs-kis': 'BPJS KIS',
+      'asuransi-lain': 'Asuransi Lain',
+    };
+    return asuransiMap[asuransi] || asuransi;
+  };
+
   const handleViewDetail = (assessment: Assessment) => {
     setSelectedAssessment(assessment);
     setDetailDialogOpen(true);
@@ -154,7 +195,15 @@ export default function AssessmentHistory() {
         'Pekerjaan': assessment.demographic.pekerjaan || '-',
         'Status Pernikahan': formatStatusPernikahan(assessment.demographic.statusPernikahan),
         'Pendidikan Terakhir': formatPendidikan(assessment.demographic.pendidikanTerakhir),
-        'Penyakit Kronis': assessment.demographic.penyakitKronis || '-',
+        'Penyakit Kronis': assessment.demographic.penyakitKronis?.join(', ') || '-',
+        'Penyakit Kronis Lainnya': assessment.demographic.penyakitKronisLainnya || '-',
+        'Lama Penyakit Kronis': formatLamaPenyakit(assessment.demographic.lamaPenyakitKronis),
+        'Kontrol Rutin': assessment.demographic.kontrolRutin === 'ya' ? 'Ya' : assessment.demographic.kontrolRutin === 'tidak' ? 'Tidak' : '-',
+        'Frekuensi Kontrol': assessment.demographic.frekuensiKontrol || '-',
+        'Kepemilikan Asuransi': formatAsuransi(assessment.demographic.kepemilikanAsuransi),
+        'Kepemilikan Kendaraan': formatKendaraan(assessment.demographic.kepemilikanKendaraan),
+        'Kendala Transportasi': assessment.demographic.kendalaTransportasi === 'ya' ? 'Ya' : assessment.demographic.kendalaTransportasi === 'tidak' ? 'Tidak' : '-',
+        'Detail Kendala Transportasi': assessment.demographic.detailKendalaTransportasi || '-',
         'Skor AKS': assessment.aksScore,
         'Skor AIKS': assessment.aiksScore,
         'Skor Barthel': assessment.barthelScore,
@@ -169,8 +218,10 @@ export default function AssessmentHistory() {
     const colWidths = [
       { wch: 5 },  { wch: 20 }, { wch: 25 }, { wch: 8 },  { wch: 15 },
       { wch: 30 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 20 },
-      { wch: 20 }, { wch: 30 }, { wch: 10 }, { wch: 10 }, { wch: 12 },
-      { wch: 15 }, { wch: 25 }, { wch: 15 },
+      { wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 20 }, { wch: 15 },
+      { wch: 30 }, { wch: 30 }, { wch: 25 }, { wch: 20 }, { wch: 35 },
+      { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 15 }, { wch: 25 },
+      { wch: 15 },
     ];
     ws['!cols'] = colWidths;
 
@@ -380,10 +431,65 @@ export default function AssessmentHistory() {
                     <p className="text-sm text-gray-600">Alamat</p>
                     <p className="font-semibold text-lg">{selectedAssessment.demographic.alamat || '-'}</p>
                   </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-rose-50 to-pink-50 p-6 rounded-lg">
+                <h3 className="text-xl font-bold mb-4 text-rose-700">Informasi Kesehatan</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <p className="text-sm text-gray-600">Penyakit Kronis</p>
-                    <p className="font-semibold text-lg">{selectedAssessment.demographic.penyakitKronis || '-'}</p>
+                    <p className="font-semibold text-lg">
+                      {selectedAssessment.demographic.penyakitKronis && selectedAssessment.demographic.penyakitKronis.length > 0
+                        ? selectedAssessment.demographic.penyakitKronis.join(', ')
+                        : '-'}
+                    </p>
+                    {selectedAssessment.demographic.penyakitKronisLainnya && (
+                      <p className="text-sm mt-1 text-gray-700">Lainnya: {selectedAssessment.demographic.penyakitKronisLainnya}</p>
+                    )}
                   </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Lama Penyakit Kronis</p>
+                    <p className="font-semibold text-lg">{formatLamaPenyakit(selectedAssessment.demographic.lamaPenyakitKronis)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Kontrol Rutin</p>
+                    <p className="font-semibold text-lg">
+                      {selectedAssessment.demographic.kontrolRutin === 'ya' ? 'Ya' : selectedAssessment.demographic.kontrolRutin === 'tidak' ? 'Tidak' : '-'}
+                    </p>
+                  </div>
+                  {selectedAssessment.demographic.kontrolRutin === 'ya' && (
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-gray-600">Frekuensi & Tempat Kontrol</p>
+                      <p className="font-semibold text-lg">{selectedAssessment.demographic.frekuensiKontrol || '-'}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-6 rounded-lg">
+                <h3 className="text-xl font-bold mb-4 text-emerald-700">Informasi Asuransi & Transportasi</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Kepemilikan Asuransi</p>
+                    <p className="font-semibold text-lg">{formatAsuransi(selectedAssessment.demographic.kepemilikanAsuransi)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Kepemilikan Kendaraan</p>
+                    <p className="font-semibold text-lg">{formatKendaraan(selectedAssessment.demographic.kepemilikanKendaraan)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Kendala Transportasi</p>
+                    <p className="font-semibold text-lg">
+                      {selectedAssessment.demographic.kendalaTransportasi === 'ya' ? 'Ya' : selectedAssessment.demographic.kendalaTransportasi === 'tidak' ? 'Tidak' : '-'}
+                    </p>
+                  </div>
+                  {selectedAssessment.demographic.kendalaTransportasi === 'ya' && (
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-gray-600">Detail Kendala Transportasi</p>
+                      <p className="font-semibold text-lg">{selectedAssessment.demographic.detailKendalaTransportasi || '-'}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 

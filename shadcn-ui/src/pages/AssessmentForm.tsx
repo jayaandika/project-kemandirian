@@ -25,7 +25,15 @@ export default function AssessmentForm() {
     pekerjaan: '',
     statusPernikahan: '',
     pendidikanTerakhir: '',
-    penyakitKronis: '',
+    penyakitKronis: [] as string[],
+    penyakitKronisLainnya: '',
+    lamaPenyakitKronis: '',
+    kontrolRutin: '',
+    frekuensiKontrol: '',
+    kepemilikanAsuransi: '',
+    kepemilikanKendaraan: '',
+    kendalaTransportasi: '',
+    detailKendalaTransportasi: '',
   });
 
   const [aksScores, setAksScores] = useState<Record<string, number>>({});
@@ -33,7 +41,7 @@ export default function AssessmentForm() {
   const [barthelScores, setBarthelScores] = useState<Record<string, number>>({});
   const [showResult, setShowResult] = useState(false);
 
-  const handleDemographicChange = (field: string, value: string) => {
+  const handleDemographicChange = (field: string, value: string | string[]) => {
     setDemographicData((prev) => ({ ...prev, [field]: value }));
   };
 
