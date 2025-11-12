@@ -6,8 +6,12 @@ import AIKSAssessment from '@/components/AIKSAssessment';
 import BarthelIndex from '@/components/BarthelIndex';
 import AssessmentResult from '@/components/AssessmentResult';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
+
+const aksItems = ['mandi', 'berpakaian', 'toileting', 'berpindah', 'kontinensia', 'makan'];
+const aiksItems = ['telepon', 'belanja', 'persiapanMakanan', 'rumahTangga', 'laundry', 'transportasi', 'obat', 'keuangan'];
+const barthelItems = ['makan', 'mandi', 'perawatanDiri', 'berpakaian', 'buangAirBesar', 'buangAirKecil', 'toilet', 'transfer', 'mobilitas', 'tangga'];
 
 export default function AssessmentForm() {
   const navigate = useNavigate();
@@ -19,39 +23,9 @@ export default function AssessmentForm() {
     noTelepon: '',
   });
 
-  const [aksScores, setAksScores] = useState<Record<string, number>>({
-    mandi: 0,
-    berpakaian: 0,
-    toileting: 0,
-    berpindah: 0,
-    kontinensia: 0,
-    makan: 0,
-  });
-
-  const [aiksScores, setAiksScores] = useState<Record<string, number>>({
-    telepon: 0,
-    belanja: 0,
-    persiapanMakanan: 0,
-    rumahTangga: 0,
-    laundry: 0,
-    transportasi: 0,
-    obat: 0,
-    keuangan: 0,
-  });
-
-  const [barthelScores, setBarthelScores] = useState<Record<string, number>>({
-    makan: 0,
-    mandi: 0,
-    perawatanDiri: 0,
-    berpakaian: 0,
-    buangAirBesar: 0,
-    buangAirKecil: 0,
-    toilet: 0,
-    transfer: 0,
-    mobilitas: 0,
-    tangga: 0,
-  });
-
+  const [aksScores, setAksScores] = useState<Record<string, number>>({});
+  const [aiksScores, setAiksScores] = useState<Record<string, number>>({});
+  const [barthelScores, setBarthelScores] = useState<Record<string, number>>({});
   const [showResult, setShowResult] = useState(false);
 
   const handleDemographicChange = (field: string, value: string) => {
@@ -82,9 +56,35 @@ export default function AssessmentForm() {
     return Object.values(barthelScores).reduce((sum, score) => sum + score, 0);
   };
 
-  const handleShowResult = () => {
+  const validateForm = () => {
     if (!demographicData.nama || !demographicData.usia) {
-      toast.error('Mohon lengkapi data demografi terlebih dahulu');
+      toast.error('Mohon lengkapi data demografi (Nama dan Usia wajib diisi)');
+      return false;
+    }
+
+    const aksComplete = aksItems.every(item => aksScores[item] !== undefined && aksScores[item] !== null);
+    if (!aksComplete) {
+      toast.error('Mohon lengkapi semua penilaian AKS');
+      return false;
+    }
+
+    const aiksComplete = aiksItems.every(item => aiksScores[item] !== undefined && aiksScores[item] !== null);
+    if (!aiksComplete) {
+      toast.error('Mohon lengkapi semua penilaian AIKS');
+      return false;
+    }
+
+    const barthelComplete = barthelItems.every(item => barthelScores[item] !== undefined && barthelScores[item] !== null);
+    if (!barthelComplete) {
+      toast.error('Mohon lengkapi semua penilaian Barthel Index');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleShowResult = () => {
+    if (!validateForm()) {
       return;
     }
     setShowResult(true);
@@ -94,10 +94,17 @@ export default function AssessmentForm() {
   };
 
   const handleSave = () => {
+    if (!validateForm()) {
+      return;
+    }
+
     const assessment = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
       demographic: demographicData,
+      aksScores: aksScores,
+      aiksScores: aiksScores,
+      barthelScores: barthelScores,
       aksScore: calculateTotalAKS(),
       aiksScore: calculateTotalAIKS(),
       barthelScore: calculateTotalBarthel(),
@@ -108,59 +115,77 @@ export default function AssessmentForm() {
     existingAssessments.push(assessment);
     localStorage.setItem('assessments', JSON.stringify(existingAssessments));
 
-    toast.success('Assessment berhasil disimpan!');
+    toast.success('Assessment berhasil disimpan!', {
+      description: 'Data telah tersimpan dan dapat dilihat di riwayat assessment',
+    });
+    
     setTimeout(() => {
       navigate('/dashboard/history');
-    }, 1000);
+    }, 1500);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => navigate('/dashboard')}
+          className="transition-transform hover:scale-110"
+        >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h2 className="text-3xl font-bold">Tambah Assessment</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Tambah Assessment
+          </h2>
           <p className="text-gray-600">Lengkapi form penilaian kemandirian</p>
         </div>
       </div>
 
       <div className="space-y-8">
-        <DemographicForm data={demographicData} onChange={handleDemographicChange} />
+        <div className="animate-in slide-in-from-bottom-4 duration-500">
+          <DemographicForm data={demographicData} onChange={handleDemographicChange} />
+        </div>
 
-        <AKSAssessment scores={aksScores} onChange={handleAksChange} />
+        <div className="animate-in slide-in-from-bottom-4 duration-500 delay-100">
+          <AKSAssessment scores={aksScores} onChange={handleAksChange} />
+        </div>
 
-        <AIKSAssessment scores={aiksScores} onChange={handleAiksChange} />
+        <div className="animate-in slide-in-from-bottom-4 duration-500 delay-200">
+          <AIKSAssessment scores={aiksScores} onChange={handleAiksChange} />
+        </div>
 
-        <BarthelIndex scores={barthelScores} onChange={handleBarthelChange} />
+        <div className="animate-in slide-in-from-bottom-4 duration-500 delay-300">
+          <BarthelIndex scores={barthelScores} onChange={handleBarthelChange} />
+        </div>
 
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-4 justify-center animate-in fade-in duration-500 delay-500">
           <Button
             onClick={handleShowResult}
             size="lg"
-            className="px-8 py-6 text-lg font-semibold"
+            className="px-8 py-6 text-lg font-semibold transition-all hover:scale-105 hover:shadow-lg"
           >
             Lihat Kesimpulan
+          </Button>
+          <Button
+            onClick={handleSave}
+            size="lg"
+            variant="outline"
+            className="px-8 py-6 text-lg font-semibold transition-all hover:scale-105 hover:shadow-lg"
+          >
+            <Save className="mr-2 h-5 w-5" />
+            Simpan Assessment
           </Button>
         </div>
 
         {showResult && (
-          <div id="result-section" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div id="result-section" className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             <AssessmentResult 
               aksScore={calculateTotalAKS()} 
               aiksScore={calculateTotalAIKS()}
               barthelScore={calculateTotalBarthel()}
             />
-            <div className="flex justify-center mt-6">
-              <Button
-                onClick={handleSave}
-                size="lg"
-                className="px-8 py-6 text-lg font-semibold"
-              >
-                Simpan Assessment
-              </Button>
-            </div>
           </div>
         )}
       </div>

@@ -103,6 +103,7 @@ const barthelItems = [
 
 export default function BarthelIndex({ scores, onChange }: BarthelIndexProps) {
   const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
+  const allFilled = barthelItems.every(item => scores[item.id] !== undefined && scores[item.id] !== null);
 
   const getInterpretation = (score: number) => {
     if (score === 100) return { level: 'Mandiri', color: 'bg-green-100 border-green-500', description: 'Pasien dapat melakukan aktivitas sehari-hari tanpa bantuan' };
@@ -115,25 +116,29 @@ export default function BarthelIndex({ scores, onChange }: BarthelIndexProps) {
   const interpretation = getInterpretation(totalScore);
 
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <Card className="w-full transition-all duration-300 hover:shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50">
         <CardTitle className="text-2xl font-bold text-primary">
           Barthel Index
         </CardTitle>
         <p className="text-sm text-gray-600">Indeks Barthel untuk mengukur kemandirian fungsional dalam aktivitas kehidupan sehari-hari</p>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {barthelItems.map((item) => (
-          <div key={item.id} className="space-y-3 p-4 border rounded-lg">
+      <CardContent className="space-y-6 pt-6">
+        {barthelItems.map((item, index) => (
+          <div 
+            key={item.id} 
+            className="space-y-3 p-4 border rounded-lg transition-all duration-300 hover:border-primary hover:shadow-md animate-in fade-in slide-in-from-bottom-4"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
             <Label className="text-lg font-semibold">{item.label}</Label>
             <RadioGroup
-              value={scores[item.id]?.toString() || '0'}
+              value={scores[item.id]?.toString() || ''}
               onValueChange={(value) => onChange(item.id, parseInt(value))}
             >
               {item.options.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2">
+                <div key={option.value} className="flex items-center space-x-2 p-2 rounded hover:bg-gray-50 transition-colors">
                   <RadioGroupItem value={option.value.toString()} id={`${item.id}-${option.value}`} />
-                  <Label htmlFor={`${item.id}-${option.value}`} className="font-normal cursor-pointer">
+                  <Label htmlFor={`${item.id}-${option.value}`} className="font-normal cursor-pointer flex-1">
                     {option.label}
                   </Label>
                 </div>
@@ -142,14 +147,16 @@ export default function BarthelIndex({ scores, onChange }: BarthelIndexProps) {
           </div>
         ))}
 
-        <Alert className={`${interpretation.color} border-2`}>
-          <AlertDescription className="space-y-2">
-            <div className="font-bold text-lg">Interpretasi Barthel Index:</div>
-            <div>Total Skor: {totalScore} / 100</div>
-            <div>Tingkat Kemandirian: {interpretation.level}</div>
-            <div className="text-sm">{interpretation.description}</div>
-          </AlertDescription>
-        </Alert>
+        {allFilled && (
+          <Alert className={`${interpretation.color} border-2 animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+            <AlertDescription className="space-y-2">
+              <div className="font-bold text-lg">Interpretasi Barthel Index:</div>
+              <div>Total Skor: {totalScore} / 100</div>
+              <div>Tingkat Kemandirian: {interpretation.level}</div>
+              <div className="text-sm">{interpretation.description}</div>
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );
