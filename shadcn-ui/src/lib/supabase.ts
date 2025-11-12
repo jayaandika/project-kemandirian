@@ -1,0 +1,169 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = 'https://lbbbefuxddhxvibjmtuh.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxiYmJlZnV4ZGRoeHZpYmptdHVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5Mjk2MTUsImV4cCI6MjA3ODUwNTYxNX0.auvpFOlERbSY2GNZmOcHx3NDnl6UGbRsnUDnelj3tU0';
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export interface Assessment {
+  id: string;
+  user_id: string;
+  date: string;
+  demographic: {
+    nama: string;
+    usia: string;
+    jenisKelamin: string;
+    alamat?: string;
+    noTelepon?: string;
+    tinggalDengan?: string;
+    pekerjaan?: string;
+    statusPernikahan?: string;
+    pendidikanTerakhir?: string;
+    penyakitKronis?: string[];
+    penyakitKronisLainnya?: string;
+    lamaPenyakitKronis?: string;
+    kontrolRutin?: string;
+    frekuensiKontrol?: string;
+    kepemilikanAsuransi?: string;
+    kepemilikanKendaraan?: string;
+    kendalaTransportasi?: string;
+    detailKendalaTransportasi?: string;
+  };
+  aks_scores: Record<string, number>;
+  aiks_scores: Record<string, number>;
+  barthel_scores: Record<string, number>;
+  aks_score: number;
+  aiks_score: number;
+  barthel_score: number;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Helper function to get current user ID (from localStorage for now)
+export const getCurrentUserId = (): string => {
+  let userId = localStorage.getItem('user_id');
+  if (!userId) {
+    userId = 'user_' + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('user_id', userId);
+  }
+  return userId;
+};
+
+// Fetch all assessments for current user
+export const fetchAssessments = async (): Promise<Assessment[]> => {
+  const userId = getCurrentUserId();
+  const { data, error } = await supabase
+    .from('assessments')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching assessments:', error);
+    throw error;
+  }
+
+  return data || [];
+};
+
+// Save a new assessment
+export const saveAssessment = async (assessment: Omit<Assessment, 'created_at' | 'updated_at'>): Promise<Assessment> => {
+  const userId = getCurrentUserId();
+  const assessmentData = {
+    ...assessment,
+    user_id: userId,
+  };
+
+  const { data, error } = await supabase
+    .from('assessments')
+    .insert([assessmentData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error saving assessment:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+// Update an existing assessment
+export const updateAssessment = async (id: string, assessment: Partial<Assessment>): Promise<Assessment> => {
+  const { data, error } = await supabase
+    .from('assessments')
+    .update(assessment)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating assessment:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+// Delete an assessment
+export const deleteAssessment = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('assessments')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting assessment:', error);
+    throw error;
+  }
+};
+
+// Migrate localStorage data to Supabase
+export const migrateLocalStorageToSupabase = async (): Promise<number> => {
+  const localData = localStorage.getItem('assessments');
+  if (!localData) return 0;
+
+  try {
+    const assessments = JSON.parse(localData);
+    const userId = getCurrentUserId();
+
+    // Check if data already migrated
+    const { data: existingData } = await supabase
+      .from('assessments')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (existingData && existingData.length > 0) {
+      console.log('Data already migrated');
+      return 0;
+    }
+
+    // Prepare data for insertion
+    const dataToInsert = assessments.map((assessment: Assessment) => ({
+      ...assessment,
+      user_id: userId,
+      aks_scores: assessment.aksScores || assessment.aks_scores,
+      aiks_scores: assessment.aiksScores || assessment.aiks_scores,
+      barthel_scores: assessment.barthelScores || assessment.barthel_scores,
+      aks_score: assessment.aksScore || assessment.aks_score,
+      aiks_score: assessment.aiksScore || assessment.aiks_score,
+      barthel_score: assessment.barthelScore || assessment.barthel_score,
+    }));
+
+    const { error } = await supabase
+      .from('assessments')
+      .insert(dataToInsert);
+
+    if (error) {
+      console.error('Error migrating data:', error);
+      throw error;
+    }
+
+    console.log(`Successfully migrated ${assessments.length} assessments`);
+    return assessments.length;
+  } catch (error) {
+    console.error('Error during migration:', error);
+    throw error;
+  }
+};
