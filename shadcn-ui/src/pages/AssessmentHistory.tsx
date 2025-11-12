@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Calendar, User, Trash2, Download, FileSpreadsheet, Eye } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Calendar, User, Trash2, Download, FileSpreadsheet, Eye, X } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,19 +59,79 @@ interface Assessment {
 
 export default function AssessmentHistory() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [filteredAssessments, setFilteredAssessments] = useState<Assessment[]>([]);
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string>('all');
 
   useEffect(() => {
     loadAssessments();
-  }, []);
+    const filter = searchParams.get('filter') || 'all';
+    setActiveFilter(filter);
+  }, [searchParams]);
+
+  useEffect(() => {
+    applyFilter();
+  }, [assessments, activeFilter]);
 
   const loadAssessments = () => {
     const stored = localStorage.getItem('assessments');
     if (stored) {
       setAssessments(JSON.parse(stored));
     }
+  };
+
+  const applyFilter = () => {
+    if (activeFilter === 'all') {
+      setFilteredAssessments(assessments);
+      return;
+    }
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    let filtered = assessments;
+
+    if (activeFilter === 'thisMonth') {
+      filtered = assessments.filter((assessment) => {
+        const assessmentDate = new Date(assessment.date);
+        return assessmentDate.getMonth() === currentMonth && assessmentDate.getFullYear() === currentYear;
+      });
+    } else if (activeFilter === 'klienPJP') {
+      filtered = assessments.filter((assessment) => {
+        const totalScore = assessment.aksScore + assessment.aiksScore;
+        const maxScore = 28;
+        const percentage = (totalScore / maxScore) * 100;
+        return percentage < 60;
+      });
+    } else if (activeFilter === 'bukanKlienPJP') {
+      filtered = assessments.filter((assessment) => {
+        const totalScore = assessment.aksScore + assessment.aiksScore;
+        const maxScore = 28;
+        const percentage = (totalScore / maxScore) * 100;
+        return percentage >= 60;
+      });
+    }
+
+    setFilteredAssessments(filtered);
+  };
+
+  const clearFilter = () => {
+    setActiveFilter('all');
+    navigate('/dashboard/history');
+  };
+
+  const getFilterLabel = () => {
+    const labels: Record<string, string> = {
+      all: 'Semua Assessment',
+      thisMonth: 'Assessment Bulan Ini',
+      klienPJP: 'Klien PJP',
+      bukanKlienPJP: 'Bukan Klien PJP',
+    };
+    return labels[activeFilter] || 'Semua Assessment';
   };
 
   const handleDelete = (id: string) => {
@@ -176,12 +236,14 @@ export default function AssessmentHistory() {
   };
 
   const exportToExcel = () => {
-    if (assessments.length === 0) {
+    const dataToExport = activeFilter === 'all' ? assessments : filteredAssessments;
+    
+    if (dataToExport.length === 0) {
       toast.error('Tidak ada data untuk diekspor');
       return;
     }
 
-    const exportData = assessments.map((assessment, index) => {
+    const exportData = dataToExport.map((assessment, index) => {
       const tingkat = getTingkatKemandirian(assessment.aksScore, assessment.aiksScore);
       return {
         'No': index + 1,
@@ -233,10 +295,11 @@ export default function AssessmentHistory() {
       month: 'long',
     });
     
-    XLSX.writeFile(wb, `Rekapan_Assessment_${currentDate}.xlsx`);
+    const filterSuffix = activeFilter !== 'all' ? `_${getFilterLabel().replace(/ /g, '_')}` : '';
+    XLSX.writeFile(wb, `Rekapan_Assessment${filterSuffix}_${currentDate}.xlsx`);
     
     toast.success('Data berhasil diekspor ke Excel!', {
-      description: `File: Rekapan_Assessment_${currentDate}.xlsx`,
+      description: `File: Rekapan_Assessment${filterSuffix}_${currentDate}.xlsx`,
     });
   };
 
@@ -260,7 +323,7 @@ export default function AssessmentHistory() {
           </div>
         </div>
         
-        {assessments.length > 0 && (
+        {filteredAssessments.length > 0 && (
           <Button 
             onClick={exportToExcel}
             className="transition-all hover:scale-105 hover:shadow-lg"
@@ -272,7 +335,27 @@ export default function AssessmentHistory() {
         )}
       </div>
 
-      {assessments.length === 0 ? (
+      {activeFilter !== 'all' && (
+        <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200 animate-in fade-in slide-in-from-top-4">
+          <Badge className="bg-blue-500 text-white text-base px-4 py-2">
+            {getFilterLabel()}
+          </Badge>
+          <span className="text-sm text-gray-600">
+            Menampilkan {filteredAssessments.length} dari {assessments.length} assessment
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilter}
+            className="ml-auto hover:bg-blue-100"
+          >
+            <X className="h-4 w-4 mr-1" />
+            Hapus Filter
+          </Button>
+        </div>
+      )}
+
+      {filteredAssessments.length === 0 ? (
         <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <CardContent className="py-12 text-center">
             <div className="mb-4 flex justify-center">
@@ -280,18 +363,33 @@ export default function AssessmentHistory() {
                 <Download className="h-10 w-10 text-gray-400" />
               </div>
             </div>
-            <p className="text-gray-500 mb-4 text-lg">Belum ada assessment yang tersimpan</p>
-            <Button 
-              onClick={() => navigate('/dashboard/assessment')}
-              className="transition-all hover:scale-105"
-            >
-              Tambah Assessment Pertama
-            </Button>
+            <p className="text-gray-500 mb-2 text-lg">
+              {activeFilter === 'all' 
+                ? 'Belum ada assessment yang tersimpan' 
+                : `Tidak ada data untuk filter "${getFilterLabel()}"`}
+            </p>
+            {activeFilter !== 'all' && (
+              <Button 
+                onClick={clearFilter}
+                variant="outline"
+                className="mt-4 transition-all hover:scale-105"
+              >
+                Lihat Semua Assessment
+              </Button>
+            )}
+            {activeFilter === 'all' && (
+              <Button 
+                onClick={() => navigate('/dashboard/assessment')}
+                className="mt-4 transition-all hover:scale-105"
+              >
+                Tambah Assessment Pertama
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
-          {assessments.map((assessment, index) => {
+          {filteredAssessments.map((assessment, index) => {
             const tingkat = getTingkatKemandirian(assessment.aksScore, assessment.aiksScore);
             return (
               <Card 

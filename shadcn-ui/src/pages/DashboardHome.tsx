@@ -62,11 +62,39 @@ export default function DashboardHome() {
     });
   };
 
+  const handleCardClick = (filter: string) => {
+    navigate(`/dashboard/history?filter=${filter}`);
+  };
+
   const statsData = [
-    { title: 'Total Assessment', value: stats.total.toString(), icon: ClipboardList, color: 'bg-blue-500' },
-    { title: 'Assessment Bulan Ini', value: stats.thisMonth.toString(), icon: TrendingUp, color: 'bg-green-500' },
-    { title: 'Klien PJP', value: stats.klienPJP.toString(), icon: Users, color: 'bg-orange-500' },
-    { title: 'Bukan Klien PJP', value: stats.bukanKlienPJP.toString(), icon: Users, color: 'bg-purple-500' },
+    { 
+      title: 'Total Assessment', 
+      value: stats.total.toString(), 
+      icon: ClipboardList, 
+      color: 'bg-blue-500',
+      filter: 'all'
+    },
+    { 
+      title: 'Assessment Bulan Ini', 
+      value: stats.thisMonth.toString(), 
+      icon: TrendingUp, 
+      color: 'bg-green-500',
+      filter: 'thisMonth'
+    },
+    { 
+      title: 'Klien PJP', 
+      value: stats.klienPJP.toString(), 
+      icon: Users, 
+      color: 'bg-orange-500',
+      filter: 'klienPJP'
+    },
+    { 
+      title: 'Bukan Klien PJP', 
+      value: stats.bukanKlienPJP.toString(), 
+      icon: Users, 
+      color: 'bg-purple-500',
+      filter: 'bukanKlienPJP'
+    },
   ];
 
   return (
@@ -84,8 +112,9 @@ export default function DashboardHome() {
           return (
             <Card 
               key={stat.title}
-              className="transition-all duration-300 hover:shadow-lg hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
+              className="transition-all duration-300 hover:shadow-xl hover:scale-105 animate-in fade-in slide-in-from-bottom-4 cursor-pointer"
               style={{ animationDelay: `${index * 50}ms` }}
+              onClick={() => handleCardClick(stat.filter)}
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600">
@@ -97,6 +126,7 @@ export default function DashboardHome() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{stat.value}</div>
+                <p className="text-xs text-gray-500 mt-1">Klik untuk lihat detail</p>
               </CardContent>
             </Card>
           );
@@ -137,7 +167,7 @@ export default function DashboardHome() {
             <p>• Barthel Index: Indeks kemandirian fungsional</p>
             <p>• PJP: Perawatan Jangka Panjang</p>
             <p className="pt-2 text-xs italic">
-              * Statistik diperbarui secara otomatis berdasarkan data assessment
+              * Klik pada card statistik untuk melihat data detail
             </p>
           </CardContent>
         </Card>
