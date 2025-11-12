@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ClipboardList, History, TrendingUp, Users } from 'lucide-react';
+import { DataSyncButtons } from '@/components/DataSyncButtons';
 
 interface Assessment {
   date: string;
@@ -99,11 +100,14 @@ export default function DashboardHome() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Dashboard
-        </h2>
-        <p className="text-gray-600">Selamat datang di Sistem Penilaian Kemandirian</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Dashboard
+          </h2>
+          <p className="text-gray-600">Selamat datang di Sistem Penilaian Kemandirian</p>
+        </div>
+        <DataSyncButtons onDataChange={loadStats} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

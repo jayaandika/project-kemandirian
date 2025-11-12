@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
+import { DataSyncButtons } from '@/components/DataSyncButtons';
 
 interface Assessment {
   id: string;
@@ -323,16 +324,19 @@ export default function AssessmentHistory() {
           </div>
         </div>
         
-        {filteredAssessments.length > 0 && (
-          <Button 
-            onClick={exportToExcel}
-            className="transition-all hover:scale-105 hover:shadow-lg"
-            size="lg"
-          >
-            <FileSpreadsheet className="mr-2 h-5 w-5" />
-            Export ke Excel
-          </Button>
-        )}
+        <div className="flex gap-2">
+          <DataSyncButtons onDataChange={loadAssessments} />
+          {filteredAssessments.length > 0 && (
+            <Button 
+              onClick={exportToExcel}
+              className="transition-all hover:scale-105 hover:shadow-lg"
+              size="lg"
+            >
+              <FileSpreadsheet className="mr-2 h-5 w-5" />
+              Export ke Excel
+            </Button>
+          )}
+        </div>
       </div>
 
       {activeFilter !== 'all' && (
