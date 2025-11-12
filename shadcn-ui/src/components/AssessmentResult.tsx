@@ -5,9 +5,10 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 interface AssessmentResultProps {
   aksScore: number;
   aiksScore: number;
+  barthelScore?: number;
 }
 
-export default function AssessmentResult({ aksScore, aiksScore }: AssessmentResultProps) {
+export default function AssessmentResult({ aksScore, aiksScore, barthelScore = 0 }: AssessmentResultProps) {
   const totalScore = aksScore + aiksScore;
   const maxScore = 28; // 12 (AKS) + 16 (AIKS)
 
@@ -17,6 +18,14 @@ export default function AssessmentResult({ aksScore, aiksScore }: AssessmentResu
     if (percentage >= 60) return 'Ketergantungan Ringan';
     if (percentage >= 40) return 'Ketergantungan Sedang';
     return 'Ketergantungan Berat';
+  };
+
+  const getBarthelInterpretation = () => {
+    if (barthelScore === 100) return 'Mandiri';
+    if (barthelScore >= 60) return 'Ketergantungan Ringan';
+    if (barthelScore >= 40) return 'Ketergantungan Sedang';
+    if (barthelScore >= 20) return 'Ketergantungan Berat';
+    return 'Ketergantungan Total';
   };
 
   const getKriteriaPJP = () => {
@@ -43,7 +52,7 @@ export default function AssessmentResult({ aksScore, aiksScore }: AssessmentResu
       <CardContent className="space-y-4">
         <Alert className={`${getColorClass()} border-2`}>
           <AlertDescription className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <div className="font-semibold text-gray-700">Skor AKS:</div>
                 <div className="text-2xl font-bold">{aksScore} / 12</div>
@@ -52,16 +61,26 @@ export default function AssessmentResult({ aksScore, aiksScore }: AssessmentResu
                 <div className="font-semibold text-gray-700">Skor AIKS:</div>
                 <div className="text-2xl font-bold">{aiksScore} / 16</div>
               </div>
+              <div>
+                <div className="font-semibold text-gray-700">Barthel Index:</div>
+                <div className="text-2xl font-bold">{barthelScore} / 100</div>
+              </div>
             </div>
 
             <div className="border-t pt-3 mt-3">
-              <div className="font-semibold text-gray-700">Total Skor:</div>
+              <div className="font-semibold text-gray-700">Total Skor AKS + AIKS:</div>
               <div className="text-3xl font-bold text-primary">{totalScore} / {maxScore}</div>
             </div>
 
-            <div className="border-t pt-3 mt-3">
-              <div className="font-semibold text-gray-700">Tingkat Kemandirian:</div>
-              <div className="text-2xl font-bold">{tingkatKemandirian}</div>
+            <div className="border-t pt-3 mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="font-semibold text-gray-700">Tingkat Kemandirian (AKS + AIKS):</div>
+                <div className="text-xl font-bold">{tingkatKemandirian}</div>
+              </div>
+              <div>
+                <div className="font-semibold text-gray-700">Tingkat Kemandirian (Barthel):</div>
+                <div className="text-xl font-bold">{getBarthelInterpretation()}</div>
+              </div>
             </div>
 
             <div className="border-t pt-3 mt-3">
@@ -89,6 +108,7 @@ export default function AssessmentResult({ aksScore, aiksScore }: AssessmentResu
             <li>PJP = Perawatan Jangka Panjang</li>
             <li>Klien PJP: Memerlukan perawatan dan bantuan berkelanjutan</li>
             <li>Bukan Klien PJP: Dapat melakukan aktivitas dengan mandiri atau bantuan minimal</li>
+            <li>Barthel Index: Skor 0-100 untuk mengukur kemandirian fungsional</li>
           </ul>
         </div>
       </CardContent>

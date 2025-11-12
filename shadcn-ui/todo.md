@@ -1,38 +1,51 @@
-# Website Penilaian Kemandirian - Todo List
+# Website Penilaian Kemandirian - Todo List (Updated)
 
-## Struktur Aplikasi
-Website ini akan memiliki 3 bagian utama dalam satu halaman:
+## Fitur Baru yang Ditambahkan:
 
-### 1. Data Demografi
-- Form dengan checkbox untuk data demografi
-- Fields: Nama, Usia, Jenis Kelamin, Alamat, dll
+### 1. Sistem Login
+- ✅ Halaman login untuk admin/perawat
+- ✅ Autentikasi sederhana dengan localStorage
+- ✅ Protected routes untuk dashboard
 
-### 2. Penilaian AKS (Aktivitas Kehidupan Sehari-hari)
-- Form penilaian dengan skoring
-- Interpretasi otomatis berdasarkan skor
-- Kategori: Mandi, Berpakaian, Toileting, Berpindah, Kontinensia, Makan
+### 2. Dashboard
+- ✅ Layout dashboard dengan sidebar
+- ✅ Menu: Tambah Assessment, Riwayat, Profil
+- ✅ Logout functionality
 
-### 3. Penilaian AIKS (Aktivitas Instrumental Kehidupan Sehari-hari)
-- Form penilaian dengan skoring
-- Interpretasi otomatis berdasarkan skor
-- Kategori: Telepon, Belanja, Persiapan Makanan, Rumah Tangga, Laundry, Transportasi, Obat, Keuangan
-
-### 4. Kesimpulan
-- Total skor AKS dan AIKS
-- Tingkat kemandirian
-- Kriteria PJP (Klien PJP / Bukan Klien PJP)
+### 3. Barthel Index
+- ✅ Tambahkan Barthel Index pada form penilaian
+- ✅ 10 item penilaian Barthel Index
+- ✅ Interpretasi otomatis
 
 ## File yang Perlu Dibuat/Modifikasi:
-1. ✅ todo.md - Perencanaan (file ini)
-2. ⬜ src/pages/Index.tsx - Halaman utama dengan form penilaian
-3. ⬜ src/components/DemographicForm.tsx - Komponen form demografi
-4. ⬜ src/components/AKSAssessment.tsx - Komponen penilaian AKS
-5. ⬜ src/components/AIKSAssessment.tsx - Komponen penilaian AIKS
-6. ⬜ src/components/AssessmentResult.tsx - Komponen hasil/kesimpulan
-7. ⬜ index.html - Update title
+1. ✅ src/pages/Login.tsx - Halaman login
+2. ✅ src/pages/Dashboard.tsx - Layout dashboard
+3. ✅ src/pages/AssessmentForm.tsx - Form penilaian (pindah dari Index.tsx)
+4. ✅ src/pages/AssessmentHistory.tsx - Riwayat assessment
+5. ✅ src/components/BarthelIndex.tsx - Komponen Barthel Index
+6. ✅ src/components/ProtectedRoute.tsx - Route protection
+7. ✅ src/lib/auth.ts - Authentication utilities
+8. ✅ src/App.tsx - Update routing
+9. ✅ Update existing components
 
-## Logika Skoring:
-- AKS: Setiap item dinilai (mandiri/bantuan/tergantung)
-- AIKS: Setiap item dinilai (mandiri/bantuan/tergantung)
-- Interpretasi berdasarkan total skor
-- Kriteria PJP ditentukan dari tingkat kemandirian
+## Struktur Data Assessment:
+- ID unik
+- Tanggal assessment
+- Data demografi
+- Skor AKS
+- Skor AIKS
+- Skor Barthel Index
+- Kesimpulan
+- Status (selesai/draft)
+
+## Barthel Index Items (10 items):
+1. Makan
+2. Mandi
+3. Perawatan Diri
+4. Berpakaian
+5. Buang Air Besar
+6. Buang Air Kecil
+7. Toilet
+8. Transfer (tempat tidur-kursi)
+9. Mobilitas
+10. Naik Turun Tangga
