@@ -21,6 +21,11 @@ export default function AssessmentForm() {
     jenisKelamin: '',
     alamat: '',
     noTelepon: '',
+    tinggalDengan: '',
+    pekerjaan: '',
+    statusPernikahan: '',
+    pendidikanTerakhir: '',
+    penyakitKronis: '',
   });
 
   const [aksScores, setAksScores] = useState<Record<string, number>>({});

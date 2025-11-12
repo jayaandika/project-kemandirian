@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Calendar, User, Trash2, Download, FileSpreadsheet } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Trash2, Download, FileSpreadsheet, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertDialog,
@@ -15,6 +15,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
@@ -27,7 +34,15 @@ interface Assessment {
     jenisKelamin: string;
     alamat?: string;
     noTelepon?: string;
+    tinggalDengan?: string;
+    pekerjaan?: string;
+    statusPernikahan?: string;
+    pendidikanTerakhir?: string;
+    penyakitKronis?: string;
   };
+  aksScores: Record<string, number>;
+  aiksScores: Record<string, number>;
+  barthelScores: Record<string, number>;
   aksScore: number;
   aiksScore: number;
   barthelScore: number;
@@ -37,6 +52,8 @@ interface Assessment {
 export default function AssessmentHistory() {
   const navigate = useNavigate();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   useEffect(() => {
     loadAssessments();
@@ -78,6 +95,45 @@ export default function AssessmentHistory() {
     return { level: 'Ketergantungan Berat', color: 'bg-red-500' };
   };
 
+  const getBarthelInterpretation = (score: number) => {
+    if (score === 100) return { level: 'Mandiri', color: 'bg-green-500' };
+    if (score >= 60) return { level: 'Ketergantungan Ringan', color: 'bg-blue-500' };
+    if (score >= 40) return { level: 'Ketergantungan Sedang', color: 'bg-yellow-500' };
+    if (score >= 20) return { level: 'Ketergantungan Berat', color: 'bg-orange-500' };
+    return { level: 'Ketergantungan Total', color: 'bg-red-500' };
+  };
+
+  const formatStatusPernikahan = (status?: string) => {
+    if (!status) return '-';
+    const statusMap: Record<string, string> = {
+      'belum-menikah': 'Belum Menikah',
+      'menikah': 'Menikah',
+      'cerai': 'Cerai',
+      'janda-duda': 'Janda/Duda',
+    };
+    return statusMap[status] || status;
+  };
+
+  const formatPendidikan = (pendidikan?: string) => {
+    if (!pendidikan) return '-';
+    const pendidikanMap: Record<string, string> = {
+      'tidak-sekolah': 'Tidak Sekolah',
+      'sd': 'SD',
+      'smp': 'SMP',
+      'sma': 'SMA',
+      'diploma': 'Diploma',
+      's1': 'S1',
+      's2': 'S2',
+      's3': 'S3',
+    };
+    return pendidikanMap[pendidikan] || pendidikan;
+  };
+
+  const handleViewDetail = (assessment: Assessment) => {
+    setSelectedAssessment(assessment);
+    setDetailDialogOpen(true);
+  };
+
   const exportToExcel = () => {
     if (assessments.length === 0) {
       toast.error('Tidak ada data untuk diekspor');
@@ -94,6 +150,11 @@ export default function AssessmentHistory() {
         'Jenis Kelamin': assessment.demographic.jenisKelamin,
         'Alamat': assessment.demographic.alamat || '-',
         'No Telepon': assessment.demographic.noTelepon || '-',
+        'Tinggal Dengan': assessment.demographic.tinggalDengan || '-',
+        'Pekerjaan': assessment.demographic.pekerjaan || '-',
+        'Status Pernikahan': formatStatusPernikahan(assessment.demographic.statusPernikahan),
+        'Pendidikan Terakhir': formatPendidikan(assessment.demographic.pendidikanTerakhir),
+        'Penyakit Kronis': assessment.demographic.penyakitKronis || '-',
         'Skor AKS': assessment.aksScore,
         'Skor AIKS': assessment.aiksScore,
         'Skor Barthel': assessment.barthelScore,
@@ -105,21 +166,11 @@ export default function AssessmentHistory() {
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     
-    // Set column widths
     const colWidths = [
-      { wch: 5 },  // No
-      { wch: 20 }, // Tanggal
-      { wch: 25 }, // Nama
-      { wch: 8 },  // Usia
-      { wch: 15 }, // Jenis Kelamin
-      { wch: 30 }, // Alamat
-      { wch: 15 }, // No Telepon
-      { wch: 10 }, // Skor AKS
-      { wch: 10 }, // Skor AIKS
-      { wch: 12 }, // Skor Barthel
-      { wch: 15 }, // Total
-      { wch: 25 }, // Tingkat Kemandirian
-      { wch: 15 }, // Kriteria PJP
+      { wch: 5 },  { wch: 20 }, { wch: 25 }, { wch: 8 },  { wch: 15 },
+      { wch: 30 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 20 },
+      { wch: 20 }, { wch: 30 }, { wch: 10 }, { wch: 10 }, { wch: 12 },
+      { wch: 15 }, { wch: 25 }, { wch: 15 },
     ];
     ws['!cols'] = colWidths;
 
@@ -199,10 +250,14 @@ export default function AssessmentHistory() {
               >
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <CardTitle className="flex items-center gap-2">
+                    <div className="space-y-1 flex-1">
+                      <CardTitle 
+                        className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => handleViewDetail(assessment)}
+                      >
                         <User className="h-5 w-5 text-primary" />
                         {assessment.demographic.nama}
+                        <Eye className="h-4 w-4 ml-2 text-gray-400" />
                       </CardTitle>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Calendar className="h-4 w-4" />
@@ -274,6 +329,124 @@ export default function AssessmentHistory() {
           })}
         </div>
       )}
+
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Detail Assessment Pasien</DialogTitle>
+            <DialogDescription>
+              Informasi lengkap hasil assessment kemandirian
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedAssessment && (
+            <div className="space-y-6 mt-4">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg">
+                <h3 className="text-xl font-bold mb-4 text-primary">Data Demografi</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Nama Lengkap</p>
+                    <p className="font-semibold text-lg">{selectedAssessment.demographic.nama}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Usia</p>
+                    <p className="font-semibold text-lg">{selectedAssessment.demographic.usia} tahun</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Jenis Kelamin</p>
+                    <p className="font-semibold text-lg capitalize">{selectedAssessment.demographic.jenisKelamin}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">No. Telepon</p>
+                    <p className="font-semibold text-lg">{selectedAssessment.demographic.noTelepon || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Tinggal Dengan</p>
+                    <p className="font-semibold text-lg">{selectedAssessment.demographic.tinggalDengan || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Pekerjaan</p>
+                    <p className="font-semibold text-lg">{selectedAssessment.demographic.pekerjaan || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Status Pernikahan</p>
+                    <p className="font-semibold text-lg">{formatStatusPernikahan(selectedAssessment.demographic.statusPernikahan)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Pendidikan Terakhir</p>
+                    <p className="font-semibold text-lg">{formatPendidikan(selectedAssessment.demographic.pendidikanTerakhir)}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-gray-600">Alamat</p>
+                    <p className="font-semibold text-lg">{selectedAssessment.demographic.alamat || '-'}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-gray-600">Penyakit Kronis</p>
+                    <p className="font-semibold text-lg">{selectedAssessment.demographic.penyakitKronis || '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
+                  <h4 className="font-bold text-blue-700 mb-2">Skor AKS</h4>
+                  <p className="text-3xl font-bold text-blue-600">{selectedAssessment.aksScore} / 12</p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    {getTingkatKemandirian(selectedAssessment.aksScore, selectedAssessment.aiksScore).level}
+                  </p>
+                </div>
+                
+                <div className="bg-purple-50 p-6 rounded-lg border-2 border-purple-200">
+                  <h4 className="font-bold text-purple-700 mb-2">Skor AIKS</h4>
+                  <p className="text-3xl font-bold text-purple-600">{selectedAssessment.aiksScore} / 16</p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    {getTingkatKemandirian(selectedAssessment.aksScore, selectedAssessment.aiksScore).level}
+                  </p>
+                </div>
+                
+                <div className="bg-emerald-50 p-6 rounded-lg border-2 border-emerald-200">
+                  <h4 className="font-bold text-emerald-700 mb-2">Barthel Index</h4>
+                  <p className="text-3xl font-bold text-emerald-600">{selectedAssessment.barthelScore} / 100</p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    {getBarthelInterpretation(selectedAssessment.barthelScore).level}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-lg border-2 border-amber-200">
+                <h3 className="text-xl font-bold mb-3 text-amber-800">Kesimpulan</h3>
+                <div className="space-y-2">
+                  <p className="text-lg">
+                    <span className="font-semibold">Total Skor AKS + AIKS:</span>{' '}
+                    <span className="text-2xl font-bold text-primary">
+                      {selectedAssessment.aksScore + selectedAssessment.aiksScore} / 28
+                    </span>
+                  </p>
+                  <p className="text-lg">
+                    <span className="font-semibold">Tingkat Kemandirian:</span>{' '}
+                    <Badge className={`${getTingkatKemandirian(selectedAssessment.aksScore, selectedAssessment.aiksScore).color} text-white text-base px-3 py-1`}>
+                      {getTingkatKemandirian(selectedAssessment.aksScore, selectedAssessment.aiksScore).level}
+                    </Badge>
+                  </p>
+                  <p className="text-lg">
+                    <span className="font-semibold">Kriteria PJP:</span>{' '}
+                    <span className="font-bold text-lg">
+                      {(getTingkatKemandirian(selectedAssessment.aksScore, selectedAssessment.aiksScore).level === 'Ketergantungan Sedang' || 
+                        getTingkatKemandirian(selectedAssessment.aksScore, selectedAssessment.aiksScore).level === 'Ketergantungan Berat') 
+                        ? '✓ Klien PJP' 
+                        : '✗ Bukan Klien PJP'}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-sm text-gray-500 text-center">
+                Tanggal Assessment: {formatDate(selectedAssessment.date)}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
