@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -54,9 +55,9 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
+      <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-10">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
             <Sheet open={open} onOpenChange={setOpen}>
@@ -66,7 +67,7 @@ export default function Dashboard() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-0">
-                <div className="p-4 border-b">
+                <div className="p-4 border-b dark:border-gray-700">
                   <h2 className="font-semibold">Menu</h2>
                 </div>
                 <nav className="flex flex-col gap-2 p-4">
@@ -74,16 +75,20 @@ export default function Dashboard() {
                 </nav>
               </SheetContent>
             </Sheet>
-            <h1 className="text-xl font-bold text-primary">Sistem Penilaian Kemandirian</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-primary">Sistem Penilaian Kemandirian</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <ThemeToggle />
             <div className="hidden sm:block text-sm">
               <p className="font-semibold">{user?.name}</p>
-              <p className="text-gray-500 text-xs">{user?.role}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-xs">{user?.role}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
+            <Button variant="outline" size="sm" onClick={handleLogout} className="hidden sm:flex">
               <LogOut className="mr-2 h-4 w-4" />
               Logout
+            </Button>
+            <Button variant="outline" size="icon" onClick={handleLogout} className="sm:hidden">
+              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -91,7 +96,7 @@ export default function Dashboard() {
 
       <div className="flex">
         {/* Sidebar - Desktop */}
-        <aside className="hidden lg:block w-64 bg-white border-r min-h-[calc(100vh-57px)] sticky top-[57px]">
+        <aside className="hidden lg:block w-64 bg-white dark:bg-gray-800 border-r dark:border-gray-700 min-h-[calc(100vh-57px)] sticky top-[57px]">
           <nav className="flex flex-col gap-2 p-4">
             <NavItems />
           </nav>

@@ -138,25 +138,25 @@ export default function AssessmentForm() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center gap-4">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto">
+      <div className="flex items-center gap-2 sm:gap-4">
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={() => navigate('/dashboard')}
-          className="transition-transform hover:scale-110"
+          className="transition-transform hover:scale-110 flex-shrink-0"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
             Tambah Assessment
           </h2>
-          <p className="text-gray-600">Lengkapi form penilaian kemandirian</p>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 truncate">Lengkapi form penilaian kemandirian</p>
         </div>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-6 sm:space-y-8">
         <div className="animate-in slide-in-from-bottom-4 duration-500">
           <DemographicForm data={demographicData} onChange={handleDemographicChange} />
         </div>
@@ -173,11 +173,11 @@ export default function AssessmentForm() {
           <BarthelIndex scores={barthelScores} onChange={handleBarthelChange} />
         </div>
 
-        <div className="flex gap-4 justify-center animate-in fade-in duration-500 delay-500">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-in fade-in duration-500 delay-500 pb-4">
           <Button
             onClick={handleShowResult}
             size="lg"
-            className="px-8 py-6 text-lg font-semibold transition-all hover:scale-105 hover:shadow-lg"
+            className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg font-semibold transition-all hover:scale-105 hover:shadow-lg"
           >
             Lihat Kesimpulan
           </Button>
@@ -185,7 +185,7 @@ export default function AssessmentForm() {
             onClick={handleSave}
             size="lg"
             variant="outline"
-            className="px-8 py-6 text-lg font-semibold transition-all hover:scale-105 hover:shadow-lg"
+            className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg font-semibold transition-all hover:scale-105 hover:shadow-lg"
           >
             <Save className="mr-2 h-5 w-5" />
             Simpan Assessment
