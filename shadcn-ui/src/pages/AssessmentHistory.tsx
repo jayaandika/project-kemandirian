@@ -329,31 +329,31 @@ export default function AssessmentHistory() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500 px-2 sm:px-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => navigate('/dashboard')}
-            className="transition-transform hover:scale-110"
+            className="transition-transform hover:scale-110 flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
               Riwayat Assessment
             </h2>
-            <p className="text-gray-600">Daftar semua assessment yang telah dilakukan</p>
+            <p className="text-sm sm:text-base text-gray-600 truncate">Daftar semua assessment yang telah dilakukan</p>
           </div>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto justify-end">
           <Button
             variant="outline"
             size="icon"
             onClick={loadAssessments}
-            className="transition-all hover:scale-105"
+            className="transition-all hover:scale-105 flex-shrink-0"
             title="Refresh data"
           >
             <RefreshCw className="h-5 w-5" />
@@ -362,29 +362,39 @@ export default function AssessmentHistory() {
           {filteredAssessments.length > 0 && (
             <Button 
               onClick={exportToExcel}
-              className="transition-all hover:scale-105 hover:shadow-lg"
+              className="transition-all hover:scale-105 hover:shadow-lg hidden sm:flex"
               size="lg"
             >
               <FileSpreadsheet className="mr-2 h-5 w-5" />
               Export ke Excel
             </Button>
           )}
+          {filteredAssessments.length > 0 && (
+            <Button 
+              onClick={exportToExcel}
+              className="transition-all hover:scale-105 hover:shadow-lg sm:hidden"
+              size="icon"
+              title="Export ke Excel"
+            >
+              <FileSpreadsheet className="h-5 w-5" />
+            </Button>
+          )}
         </div>
       </div>
 
       {activeFilter !== 'all' && (
-        <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200 animate-in fade-in slide-in-from-top-4">
-          <Badge className="bg-blue-500 text-white text-base px-4 py-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-200 animate-in fade-in slide-in-from-top-4">
+          <Badge className="bg-blue-500 text-white text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2">
             {getFilterLabel()}
           </Badge>
-          <span className="text-sm text-gray-600">
+          <span className="text-xs sm:text-sm text-gray-600">
             Menampilkan {filteredAssessments.length} dari {assessments.length} assessment
           </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={clearFilter}
-            className="ml-auto hover:bg-blue-100"
+            className="ml-0 sm:ml-auto hover:bg-blue-100 w-full sm:w-auto mt-2 sm:mt-0"
           >
             <X className="h-4 w-4 mr-1" />
             Hapus Filter
@@ -394,13 +404,13 @@ export default function AssessmentHistory() {
 
       {filteredAssessments.length === 0 ? (
         <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <CardContent className="py-12 text-center">
+          <CardContent className="py-8 sm:py-12 text-center px-4">
             <div className="mb-4 flex justify-center">
-              <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center">
-                <Download className="h-10 w-10 text-gray-400" />
+              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gray-100 flex items-center justify-center">
+                <Download className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
               </div>
             </div>
-            <p className="text-gray-500 mb-2 text-lg">
+            <p className="text-gray-500 mb-2 text-base sm:text-lg">
               {activeFilter === 'all' 
                 ? 'Belum ada assessment yang tersimpan' 
                 : `Tidak ada data untuk filter "${getFilterLabel()}"`}
@@ -409,7 +419,7 @@ export default function AssessmentHistory() {
               <Button 
                 onClick={clearFilter}
                 variant="outline"
-                className="mt-4 transition-all hover:scale-105"
+                className="mt-4 transition-all hover:scale-105 w-full sm:w-auto"
               >
                 Lihat Semua Assessment
               </Button>
@@ -417,7 +427,7 @@ export default function AssessmentHistory() {
             {activeFilter === 'all' && (
               <Button 
                 onClick={() => navigate('/dashboard/assessment')}
-                className="mt-4 transition-all hover:scale-105"
+                className="mt-4 transition-all hover:scale-105 w-full sm:w-auto"
               >
                 Tambah Assessment Pertama
               </Button>
@@ -425,7 +435,7 @@ export default function AssessmentHistory() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3 sm:gap-4">
           {filteredAssessments.map((assessment, index) => {
             const tingkat = getTingkatKemandirian(assessment.aks_score, assessment.aiks_score);
             return (
@@ -434,20 +444,20 @@ export default function AssessmentHistory() {
                 className="transition-all duration-300 hover:shadow-xl hover:scale-[1.01] animate-in fade-in slide-in-from-bottom-4"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1 flex-1">
+                <CardHeader className="pb-3 sm:pb-4">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="space-y-1 flex-1 min-w-0">
                       <CardTitle 
-                        className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+                        className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors text-base sm:text-lg"
                         onClick={() => handleViewDetail(assessment)}
                       >
-                        <User className="h-5 w-5 text-primary" />
-                        {assessment.demographic.nama}
-                        <Eye className="h-4 w-4 ml-2 text-gray-400" />
+                        <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                        <span className="truncate">{assessment.demographic.nama}</span>
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 ml-auto text-gray-400 flex-shrink-0" />
                       </CardTitle>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(assessment.date)}
+                      <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="truncate">{formatDate(assessment.date)}</span>
                       </div>
                     </div>
                     <AlertDialog>
@@ -455,23 +465,23 @@ export default function AssessmentHistory() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-all"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-all flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Hapus Assessment?</AlertDialogTitle>
-                          <AlertDialogDescription>
+                          <AlertDialogTitle className="text-base sm:text-lg">Hapus Assessment?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-sm">
                             Tindakan ini tidak dapat dibatalkan. Assessment akan dihapus permanen dari cloud.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                          <AlertDialogCancel className="w-full sm:w-auto">Batal</AlertDialogCancel>
                           <AlertDialogAction 
                             onClick={() => handleDelete(assessment.id)}
-                            className="bg-red-500 hover:bg-red-600"
+                            className="bg-red-500 hover:bg-red-600 w-full sm:w-auto"
                           >
                             Hapus
                           </AlertDialogAction>
@@ -480,33 +490,33 @@ export default function AssessmentHistory() {
                     </AlertDialog>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div className="p-3 bg-gray-50 rounded-lg transition-all hover:bg-gray-100">
-                      <p className="text-sm text-gray-600">Usia</p>
-                      <p className="font-semibold text-lg">{assessment.demographic.usia} tahun</p>
+                <CardContent className="space-y-3 sm:space-y-4">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                    <div className="p-2 sm:p-3 bg-gray-50 rounded-lg transition-all hover:bg-gray-100">
+                      <p className="text-xs text-gray-600">Usia</p>
+                      <p className="font-semibold text-sm sm:text-lg">{assessment.demographic.usia} tahun</p>
                     </div>
-                    <div className="p-3 bg-gray-50 rounded-lg transition-all hover:bg-gray-100">
-                      <p className="text-sm text-gray-600">Jenis Kelamin</p>
-                      <p className="font-semibold text-lg capitalize">{assessment.demographic.jenisKelamin}</p>
+                    <div className="p-2 sm:p-3 bg-gray-50 rounded-lg transition-all hover:bg-gray-100">
+                      <p className="text-xs text-gray-600">Jenis Kelamin</p>
+                      <p className="font-semibold text-sm sm:text-lg capitalize">{assessment.demographic.jenisKelamin}</p>
                     </div>
-                    <div className="p-3 bg-blue-50 rounded-lg transition-all hover:bg-blue-100">
-                      <p className="text-sm text-gray-600">Skor AKS</p>
-                      <p className="font-semibold text-lg text-blue-600">{assessment.aks_score} / 12</p>
+                    <div className="p-2 sm:p-3 bg-blue-50 rounded-lg transition-all hover:bg-blue-100">
+                      <p className="text-xs text-gray-600">Skor AKS</p>
+                      <p className="font-semibold text-sm sm:text-lg text-blue-600">{assessment.aks_score} / 12</p>
                     </div>
-                    <div className="p-3 bg-purple-50 rounded-lg transition-all hover:bg-purple-100">
-                      <p className="text-sm text-gray-600">Skor AIKS</p>
-                      <p className="font-semibold text-lg text-purple-600">{assessment.aiks_score} / 16</p>
+                    <div className="p-2 sm:p-3 bg-purple-50 rounded-lg transition-all hover:bg-purple-100">
+                      <p className="text-xs text-gray-600">Skor AIKS</p>
+                      <p className="font-semibold text-sm sm:text-lg text-purple-600">{assessment.aiks_score} / 16</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-3 bg-emerald-50 rounded-lg transition-all hover:bg-emerald-100">
-                      <p className="text-sm text-gray-600 mb-1">Barthel Index</p>
-                      <p className="font-semibold text-lg text-emerald-600">{assessment.barthel_score} / 100</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                    <div className="p-2 sm:p-3 bg-emerald-50 rounded-lg transition-all hover:bg-emerald-100">
+                      <p className="text-xs text-gray-600 mb-1">Barthel Index</p>
+                      <p className="font-semibold text-sm sm:text-lg text-emerald-600">{assessment.barthel_score} / 100</p>
                     </div>
-                    <div className="p-3 bg-gray-50 rounded-lg transition-all hover:bg-gray-100">
-                      <p className="text-sm text-gray-600 mb-1">Tingkat Kemandirian</p>
-                      <Badge className={`${tingkat.color} text-white`}>{tingkat.level}</Badge>
+                    <div className="p-2 sm:p-3 bg-gray-50 rounded-lg transition-all hover:bg-gray-100">
+                      <p className="text-xs text-gray-600 mb-1">Tingkat Kemandirian</p>
+                      <Badge className={`${tingkat.color} text-white text-xs sm:text-sm`}>{tingkat.level}</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -517,161 +527,161 @@ export default function AssessmentHistory() {
       )}
 
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Detail Assessment Pasien</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl sm:text-2xl font-bold">Detail Assessment Pasien</DialogTitle>
+            <DialogDescription className="text-sm">
               Informasi lengkap hasil assessment kemandirian
             </DialogDescription>
           </DialogHeader>
           
           {selectedAssessment && (
-            <div className="space-y-6 mt-4">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg">
-                <h3 className="text-xl font-bold mb-4 text-primary">Data Demografi</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4 sm:space-y-6 mt-4">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-6 rounded-lg">
+                <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-primary">Data Demografi</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">Nama Lengkap</p>
-                    <p className="font-semibold text-lg">{selectedAssessment.demographic.nama}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Nama Lengkap</p>
+                    <p className="font-semibold text-sm sm:text-lg break-words">{selectedAssessment.demographic.nama}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Usia</p>
-                    <p className="font-semibold text-lg">{selectedAssessment.demographic.usia} tahun</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Usia</p>
+                    <p className="font-semibold text-sm sm:text-lg">{selectedAssessment.demographic.usia} tahun</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Jenis Kelamin</p>
-                    <p className="font-semibold text-lg capitalize">{selectedAssessment.demographic.jenisKelamin}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Jenis Kelamin</p>
+                    <p className="font-semibold text-sm sm:text-lg capitalize">{selectedAssessment.demographic.jenisKelamin}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">No. Telepon</p>
-                    <p className="font-semibold text-lg">{selectedAssessment.demographic.noTelepon || '-'}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">No. Telepon</p>
+                    <p className="font-semibold text-sm sm:text-lg break-all">{selectedAssessment.demographic.noTelepon || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Tinggal Dengan</p>
-                    <p className="font-semibold text-lg">{selectedAssessment.demographic.tinggalDengan || '-'}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Tinggal Dengan</p>
+                    <p className="font-semibold text-sm sm:text-lg">{selectedAssessment.demographic.tinggalDengan || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Pekerjaan</p>
-                    <p className="font-semibold text-lg">{selectedAssessment.demographic.pekerjaan || '-'}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Pekerjaan</p>
+                    <p className="font-semibold text-sm sm:text-lg">{selectedAssessment.demographic.pekerjaan || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Status Pernikahan</p>
-                    <p className="font-semibold text-lg">{formatStatusPernikahan(selectedAssessment.demographic.statusPernikahan)}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Status Pernikahan</p>
+                    <p className="font-semibold text-sm sm:text-lg">{formatStatusPernikahan(selectedAssessment.demographic.statusPernikahan)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Pendidikan Terakhir</p>
-                    <p className="font-semibold text-lg">{formatPendidikan(selectedAssessment.demographic.pendidikanTerakhir)}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Pendidikan Terakhir</p>
+                    <p className="font-semibold text-sm sm:text-lg">{formatPendidikan(selectedAssessment.demographic.pendidikanTerakhir)}</p>
                   </div>
-                  <div className="md:col-span-2">
-                    <p className="text-sm text-gray-600">Alamat</p>
-                    <p className="font-semibold text-lg">{selectedAssessment.demographic.alamat || '-'}</p>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs sm:text-sm text-gray-600">Alamat</p>
+                    <p className="font-semibold text-sm sm:text-lg break-words">{selectedAssessment.demographic.alamat || '-'}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-rose-50 to-pink-50 p-6 rounded-lg">
-                <h3 className="text-xl font-bold mb-4 text-rose-700">Informasi Kesehatan</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <p className="text-sm text-gray-600">Penyakit Kronis</p>
-                    <p className="font-semibold text-lg">
+              <div className="bg-gradient-to-r from-rose-50 to-pink-50 p-4 sm:p-6 rounded-lg">
+                <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-rose-700">Informasi Kesehatan</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="sm:col-span-2">
+                    <p className="text-xs sm:text-sm text-gray-600">Penyakit Kronis</p>
+                    <p className="font-semibold text-sm sm:text-lg break-words">
                       {selectedAssessment.demographic.penyakitKronis && selectedAssessment.demographic.penyakitKronis.length > 0
                         ? selectedAssessment.demographic.penyakitKronis.join(', ')
                         : '-'}
                     </p>
                     {selectedAssessment.demographic.penyakitKronisLainnya && (
-                      <p className="text-sm mt-1 text-gray-700">Lainnya: {selectedAssessment.demographic.penyakitKronisLainnya}</p>
+                      <p className="text-xs sm:text-sm mt-1 text-gray-700 break-words">Lainnya: {selectedAssessment.demographic.penyakitKronisLainnya}</p>
                     )}
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Lama Penyakit Kronis</p>
-                    <p className="font-semibold text-lg">{formatLamaPenyakit(selectedAssessment.demographic.lamaPenyakitKronis)}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Lama Penyakit Kronis</p>
+                    <p className="font-semibold text-sm sm:text-lg">{formatLamaPenyakit(selectedAssessment.demographic.lamaPenyakitKronis)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Kontrol Rutin</p>
-                    <p className="font-semibold text-lg">
+                    <p className="text-xs sm:text-sm text-gray-600">Kontrol Rutin</p>
+                    <p className="font-semibold text-sm sm:text-lg">
                       {selectedAssessment.demographic.kontrolRutin === 'ya' ? 'Ya' : selectedAssessment.demographic.kontrolRutin === 'tidak' ? 'Tidak' : '-'}
                     </p>
                   </div>
                   {selectedAssessment.demographic.kontrolRutin === 'ya' && (
-                    <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600">Frekuensi & Tempat Kontrol</p>
-                      <p className="font-semibold text-lg">{selectedAssessment.demographic.frekuensiKontrol || '-'}</p>
+                    <div className="sm:col-span-2">
+                      <p className="text-xs sm:text-sm text-gray-600">Frekuensi & Tempat Kontrol</p>
+                      <p className="font-semibold text-sm sm:text-lg break-words">{selectedAssessment.demographic.frekuensiKontrol || '-'}</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-6 rounded-lg">
-                <h3 className="text-xl font-bold mb-4 text-emerald-700">Informasi Asuransi & Transportasi</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 sm:p-6 rounded-lg">
+                <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-emerald-700">Informasi Asuransi & Transportasi</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">Kepemilikan Asuransi</p>
-                    <p className="font-semibold text-lg">{formatAsuransi(selectedAssessment.demographic.kepemilikanAsuransi)}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Kepemilikan Asuransi</p>
+                    <p className="font-semibold text-sm sm:text-lg break-words">{formatAsuransi(selectedAssessment.demographic.kepemilikanAsuransi)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Kepemilikan Kendaraan</p>
-                    <p className="font-semibold text-lg">{formatKendaraan(selectedAssessment.demographic.kepemilikanKendaraan)}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Kepemilikan Kendaraan</p>
+                    <p className="font-semibold text-sm sm:text-lg break-words">{formatKendaraan(selectedAssessment.demographic.kepemilikanKendaraan)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Kendala Transportasi</p>
-                    <p className="font-semibold text-lg">
+                    <p className="text-xs sm:text-sm text-gray-600">Kendala Transportasi</p>
+                    <p className="font-semibold text-sm sm:text-lg">
                       {selectedAssessment.demographic.kendalaTransportasi === 'ya' ? 'Ya' : selectedAssessment.demographic.kendalaTransportasi === 'tidak' ? 'Tidak' : '-'}
                     </p>
                   </div>
                   {selectedAssessment.demographic.kendalaTransportasi === 'ya' && (
-                    <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600">Detail Kendala Transportasi</p>
-                      <p className="font-semibold text-lg">{selectedAssessment.demographic.detailKendalaTransportasi || '-'}</p>
+                    <div className="sm:col-span-2">
+                      <p className="text-xs sm:text-sm text-gray-600">Detail Kendala Transportasi</p>
+                      <p className="font-semibold text-sm sm:text-lg break-words">{selectedAssessment.demographic.detailKendalaTransportasi || '-'}</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
-                  <h4 className="font-bold text-blue-700 mb-2">Skor AKS</h4>
-                  <p className="text-3xl font-bold text-blue-600">{selectedAssessment.aks_score} / 12</p>
-                  <p className="text-sm text-gray-600 mt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className="bg-blue-50 p-4 sm:p-6 rounded-lg border-2 border-blue-200">
+                  <h4 className="font-bold text-blue-700 mb-2 text-sm sm:text-base">Skor AKS</h4>
+                  <p className="text-2xl sm:text-3xl font-bold text-blue-600">{selectedAssessment.aks_score} / 12</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-2">
                     {getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level}
                   </p>
                 </div>
                 
-                <div className="bg-purple-50 p-6 rounded-lg border-2 border-purple-200">
-                  <h4 className="font-bold text-purple-700 mb-2">Skor AIKS</h4>
-                  <p className="text-3xl font-bold text-purple-600">{selectedAssessment.aiks_score} / 16</p>
-                  <p className="text-sm text-gray-600 mt-2">
+                <div className="bg-purple-50 p-4 sm:p-6 rounded-lg border-2 border-purple-200">
+                  <h4 className="font-bold text-purple-700 mb-2 text-sm sm:text-base">Skor AIKS</h4>
+                  <p className="text-2xl sm:text-3xl font-bold text-purple-600">{selectedAssessment.aiks_score} / 16</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-2">
                     {getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level}
                   </p>
                 </div>
                 
-                <div className="bg-emerald-50 p-6 rounded-lg border-2 border-emerald-200">
-                  <h4 className="font-bold text-emerald-700 mb-2">Barthel Index</h4>
-                  <p className="text-3xl font-bold text-emerald-600">{selectedAssessment.barthel_score} / 100</p>
-                  <p className="text-sm text-gray-600 mt-2">
+                <div className="bg-emerald-50 p-4 sm:p-6 rounded-lg border-2 border-emerald-200">
+                  <h4 className="font-bold text-emerald-700 mb-2 text-sm sm:text-base">Barthel Index</h4>
+                  <p className="text-2xl sm:text-3xl font-bold text-emerald-600">{selectedAssessment.barthel_score} / 100</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-2">
                     {getBarthelInterpretation(selectedAssessment.barthel_score).level}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-lg border-2 border-amber-200">
-                <h3 className="text-xl font-bold mb-3 text-amber-800">Kesimpulan</h3>
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 sm:p-6 rounded-lg border-2 border-amber-200">
+                <h3 className="text-lg sm:text-xl font-bold mb-3 text-amber-800">Kesimpulan</h3>
                 <div className="space-y-2">
-                  <p className="text-lg">
+                  <p className="text-sm sm:text-lg">
                     <span className="font-semibold">Total Skor AKS + AIKS:</span>{' '}
-                    <span className="text-2xl font-bold text-primary">
+                    <span className="text-xl sm:text-2xl font-bold text-primary">
                       {selectedAssessment.aks_score + selectedAssessment.aiks_score} / 28
                     </span>
                   </p>
-                  <p className="text-lg">
+                  <p className="text-sm sm:text-lg">
                     <span className="font-semibold">Tingkat Kemandirian:</span>{' '}
-                    <Badge className={`${getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).color} text-white text-base px-3 py-1`}>
+                    <Badge className={`${getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).color} text-white text-sm sm:text-base px-2 sm:px-3 py-1`}>
                       {getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level}
                     </Badge>
                   </p>
-                  <p className="text-lg">
+                  <p className="text-sm sm:text-lg">
                     <span className="font-semibold">Kriteria PJP:</span>{' '}
-                    <span className="font-bold text-lg">
+                    <span className="font-bold text-sm sm:text-lg">
                       {(getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level === 'Ketergantungan Sedang' || 
                         getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level === 'Ketergantungan Berat') 
                         ? '✓ Klien PJP' 
@@ -681,7 +691,7 @@ export default function AssessmentHistory() {
                 </div>
               </div>
 
-              <div className="text-sm text-gray-500 text-center">
+              <div className="text-xs sm:text-sm text-gray-500 text-center break-words">
                 Tanggal Assessment: {formatDate(selectedAssessment.date)}
               </div>
             </div>

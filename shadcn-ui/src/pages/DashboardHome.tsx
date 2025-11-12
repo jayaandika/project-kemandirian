@@ -74,28 +74,28 @@ export default function DashboardHome() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 px-2 sm:px-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h2 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Dashboard
           </h2>
-          <p className="text-gray-600 mt-2">Sistem Assessment Kemandirian Lansia</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-2">Sistem Assessment Kemandirian Lansia</p>
         </div>
         <DataSyncButtons onDataChange={loadStatistics} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <Card 
           className="transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 animate-in slide-in-from-bottom-4"
           onClick={() => handleNavigateWithFilter('all')}
         >
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium text-blue-700">Total Assessment</CardTitle>
-            <ClipboardList className="h-5 w-5 text-blue-600" />
+            <ClipboardList className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-900">
+            <div className="text-2xl sm:text-3xl font-bold text-blue-900">
               {isLoading ? '...' : totalAssessments}
             </div>
             <p className="text-xs text-blue-600 mt-2">Semua data assessment</p>
@@ -106,12 +106,12 @@ export default function DashboardHome() {
           className="transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer bg-gradient-to-br from-green-50 to-green-100 border-green-200 animate-in slide-in-from-bottom-4 delay-100"
           onClick={() => handleNavigateWithFilter('thisMonth')}
         >
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium text-green-700">Bulan Ini</CardTitle>
-            <Calendar className="h-5 w-5 text-green-600" />
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-900">
+            <div className="text-2xl sm:text-3xl font-bold text-green-900">
               {isLoading ? '...' : thisMonthCount}
             </div>
             <p className="text-xs text-green-600 mt-2">Assessment bulan ini</p>
@@ -122,12 +122,12 @@ export default function DashboardHome() {
           className="transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 animate-in slide-in-from-bottom-4 delay-200"
           onClick={() => handleNavigateWithFilter('klienPJP')}
         >
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium text-orange-700">Klien PJP</CardTitle>
-            <Users className="h-5 w-5 text-orange-600" />
+            <Users className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-orange-900">
+            <div className="text-2xl sm:text-3xl font-bold text-orange-900">
               {isLoading ? '...' : klienPJPCount}
             </div>
             <p className="text-xs text-orange-600 mt-2">Perlu pendampingan</p>
@@ -138,12 +138,12 @@ export default function DashboardHome() {
           className="transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 animate-in slide-in-from-bottom-4 delay-300"
           onClick={() => handleNavigateWithFilter('bukanKlienPJP')}
         >
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium text-purple-700">Bukan Klien PJP</CardTitle>
-            <TrendingUp className="h-5 w-5 text-purple-600" />
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-900">
+            <div className="text-2xl sm:text-3xl font-bold text-purple-900">
               {isLoading ? '...' : bukanKlienPJPCount}
             </div>
             <p className="text-xs text-purple-600 mt-2">Mandiri / ringan</p>
@@ -151,16 +151,16 @@ export default function DashboardHome() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <Card className="transition-all duration-300 hover:shadow-xl animate-in slide-in-from-left-4 delay-500">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ClipboardList className="h-5 w-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <ClipboardList className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Tambah Assessment Baru
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 mb-4">
+            <p className="text-sm sm:text-base text-gray-600 mb-4">
               Mulai assessment kemandirian untuk pasien baru atau lakukan follow-up assessment
             </p>
             <Button 
@@ -175,13 +175,13 @@ export default function DashboardHome() {
 
         <Card className="transition-all duration-300 hover:shadow-xl animate-in slide-in-from-right-4 delay-500">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Riwayat Assessment
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 mb-4">
+            <p className="text-sm sm:text-base text-gray-600 mb-4">
               Lihat semua assessment yang telah dilakukan dan export data ke Excel
             </p>
             <Button 

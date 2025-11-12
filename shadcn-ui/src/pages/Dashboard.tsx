@@ -1,111 +1,75 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { logout, getCurrentUser } from '@/lib/auth';
-import { 
-  LayoutDashboard, 
-  ClipboardList, 
-  History, 
-  User, 
-  LogOut,
-  Menu
-} from 'lucide-react';
-import { useState } from 'react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { LogOut, Home, ClipboardList, FileText } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const user = getCurrentUser();
-  const [open, setOpen] = useState(false);
 
   const handleLogout = () => {
-    logout();
-    navigate('/login');
+    localStorage.removeItem('isAuthenticated');
+    navigate('/');
   };
 
-  const menuItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/dashboard/assessment', icon: ClipboardList, label: 'Tambah Assessment' },
-    { path: '/dashboard/history', icon: History, label: 'Riwayat Assessment' },
-    { path: '/dashboard/profile', icon: User, label: 'Profil' },
-  ];
-
-  const NavItems = () => (
-    <>
-      {menuItems.map((item) => {
-        const Icon = item.icon;
-        const isActive = location.pathname === item.path;
-        return (
-          <Button
-            key={item.path}
-            variant={isActive ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => {
-              navigate(item.path);
-              setOpen(false);
-            }}
-          >
-            <Icon className="mr-2 h-4 w-4" />
-            {item.label}
-          </Button>
-        );
-      })}
-    </>
-  );
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-10">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-4">
-            <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild className="lg:hidden">
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-64 p-0">
-                <div className="p-4 border-b dark:border-gray-700">
-                  <h2 className="font-semibold">Menu</h2>
-                </div>
-                <nav className="flex flex-col gap-2 p-4">
-                  <NavItems />
-                </nav>
-              </SheetContent>
-            </Sheet>
-            <h1 className="text-lg sm:text-xl font-bold text-primary">Sistem Penilaian Kemandirian</h1>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <ThemeToggle />
-            <div className="hidden sm:block text-sm">
-              <p className="font-semibold">{user?.name}</p>
-              <p className="text-gray-500 dark:text-gray-400 text-xs">{user?.role}</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+      <nav className="bg-white dark:bg-gray-800 shadow-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
+                Assessment Lansia
+              </h1>
             </div>
-            <Button variant="outline" size="sm" onClick={handleLogout} className="hidden sm:flex">
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
-            <Button variant="outline" size="icon" onClick={handleLogout} className="sm:hidden">
-              <LogOut className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <ThemeToggle />
+              <Button 
+                variant="ghost" 
+                onClick={handleLogout}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 text-xs sm:text-sm px-2 sm:px-4"
+              >
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            </div>
           </div>
         </div>
-      </header>
+      </nav>
 
-      <div className="flex">
-        {/* Sidebar - Desktop */}
-        <aside className="hidden lg:block w-64 bg-white dark:bg-gray-800 border-r dark:border-gray-700 min-h-[calc(100vh-57px)] sticky top-[57px]">
-          <nav className="flex flex-col gap-2 p-4">
-            <NavItems />
-          </nav>
-        </aside>
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="mb-4 sm:mb-6 flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+          <Button
+            variant={isActive('/dashboard') ? 'default' : 'outline'}
+            onClick={() => navigate('/dashboard')}
+            className="flex-shrink-0 text-xs sm:text-sm px-3 sm:px-4"
+          >
+            <Home className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </Button>
+          <Button
+            variant={isActive('/dashboard/assessment') ? 'default' : 'outline'}
+            onClick={() => navigate('/dashboard/assessment')}
+            className="flex-shrink-0 text-xs sm:text-sm px-3 sm:px-4"
+          >
+            <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Assessment</span>
+          </Button>
+          <Button
+            variant={isActive('/dashboard/history') ? 'default' : 'outline'}
+            onClick={() => navigate('/dashboard/history')}
+            className="flex-shrink-0 text-xs sm:text-sm px-3 sm:px-4"
+          >
+            <FileText className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Riwayat</span>
+          </Button>
+        </div>
 
-        {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-8">
-          <Outlet />
-        </main>
+        <Outlet />
       </div>
     </div>
   );
