@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Calendar, User, Trash2, Download, FileSpreadsheet, Eye, X } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Trash2, Download, FileSpreadsheet, Eye, X, RefreshCw } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertDialog,
@@ -25,38 +25,7 @@ import {
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import { DataSyncButtons } from '@/components/DataSyncButtons';
-
-interface Assessment {
-  id: string;
-  date: string;
-  demographic: {
-    nama: string;
-    usia: string;
-    jenisKelamin: string;
-    alamat?: string;
-    noTelepon?: string;
-    tinggalDengan?: string;
-    pekerjaan?: string;
-    statusPernikahan?: string;
-    pendidikanTerakhir?: string;
-    penyakitKronis?: string[];
-    penyakitKronisLainnya?: string;
-    lamaPenyakitKronis?: string;
-    kontrolRutin?: string;
-    frekuensiKontrol?: string;
-    kepemilikanAsuransi?: string;
-    kepemilikanKendaraan?: string;
-    kendalaTransportasi?: string;
-    detailKendalaTransportasi?: string;
-  };
-  aksScores: Record<string, number>;
-  aiksScores: Record<string, number>;
-  barthelScores: Record<string, number>;
-  aksScore: number;
-  aiksScore: number;
-  barthelScore: number;
-  status: string;
-}
+import { fetchAssessments, deleteAssessment, migrateLocalStorageToSupabase, Assessment } from '@/lib/supabase';
 
 export default function AssessmentHistory() {
   const navigate = useNavigate();
@@ -66,6 +35,8 @@ export default function AssessmentHistory() {
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMigrating, setIsMigrating] = useState(false);
 
   useEffect(() => {
     loadAssessments();
@@ -77,10 +48,44 @@ export default function AssessmentHistory() {
     applyFilter();
   }, [assessments, activeFilter]);
 
-  const loadAssessments = () => {
-    const stored = localStorage.getItem('assessments');
-    if (stored) {
-      setAssessments(JSON.parse(stored));
+  useEffect(() => {
+    // Auto-migrate localStorage data on first load
+    const checkAndMigrate = async () => {
+      const localData = localStorage.getItem('assessments');
+      if (localData) {
+        try {
+          setIsMigrating(true);
+          const migratedCount = await migrateLocalStorageToSupabase();
+          if (migratedCount > 0) {
+            toast.success(`Berhasil memigrasikan ${migratedCount} assessment ke cloud!`, {
+              description: 'Data localStorage telah dipindahkan ke Supabase',
+            });
+            // Reload assessments after migration
+            await loadAssessments();
+          }
+        } catch (error) {
+          console.error('Migration error:', error);
+        } finally {
+          setIsMigrating(false);
+        }
+      }
+    };
+    
+    checkAndMigrate();
+  }, []);
+
+  const loadAssessments = async () => {
+    try {
+      setIsLoading(true);
+      const data = await fetchAssessments();
+      setAssessments(data);
+    } catch (error) {
+      console.error('Error loading assessments:', error);
+      toast.error('Gagal memuat data assessment', {
+        description: 'Silakan refresh halaman atau coba lagi',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -103,14 +108,14 @@ export default function AssessmentHistory() {
       });
     } else if (activeFilter === 'klienPJP') {
       filtered = assessments.filter((assessment) => {
-        const totalScore = assessment.aksScore + assessment.aiksScore;
+        const totalScore = assessment.aks_score + assessment.aiks_score;
         const maxScore = 28;
         const percentage = (totalScore / maxScore) * 100;
         return percentage < 60;
       });
     } else if (activeFilter === 'bukanKlienPJP') {
       filtered = assessments.filter((assessment) => {
-        const totalScore = assessment.aksScore + assessment.aiksScore;
+        const totalScore = assessment.aks_score + assessment.aiks_score;
         const maxScore = 28;
         const percentage = (totalScore / maxScore) * 100;
         return percentage >= 60;
@@ -135,11 +140,17 @@ export default function AssessmentHistory() {
     return labels[activeFilter] || 'Semua Assessment';
   };
 
-  const handleDelete = (id: string) => {
-    const updated = assessments.filter((a) => a.id !== id);
-    localStorage.setItem('assessments', JSON.stringify(updated));
-    setAssessments(updated);
-    toast.success('Assessment berhasil dihapus');
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteAssessment(id);
+      await loadAssessments();
+      toast.success('Assessment berhasil dihapus');
+    } catch (error) {
+      console.error('Error deleting assessment:', error);
+      toast.error('Gagal menghapus assessment', {
+        description: 'Silakan coba lagi',
+      });
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -245,7 +256,7 @@ export default function AssessmentHistory() {
     }
 
     const exportData = dataToExport.map((assessment, index) => {
-      const tingkat = getTingkatKemandirian(assessment.aksScore, assessment.aiksScore);
+      const tingkat = getTingkatKemandirian(assessment.aks_score, assessment.aiks_score);
       return {
         'No': index + 1,
         'Tanggal': formatDate(assessment.date),
@@ -267,10 +278,10 @@ export default function AssessmentHistory() {
         'Kepemilikan Kendaraan': formatKendaraan(assessment.demographic.kepemilikanKendaraan),
         'Kendala Transportasi': assessment.demographic.kendalaTransportasi === 'ya' ? 'Ya' : assessment.demographic.kendalaTransportasi === 'tidak' ? 'Tidak' : '-',
         'Detail Kendala Transportasi': assessment.demographic.detailKendalaTransportasi || '-',
-        'Skor AKS': assessment.aksScore,
-        'Skor AIKS': assessment.aiksScore,
-        'Skor Barthel': assessment.barthelScore,
-        'Total AKS+AIKS': assessment.aksScore + assessment.aiksScore,
+        'Skor AKS': assessment.aks_score,
+        'Skor AIKS': assessment.aiks_score,
+        'Skor Barthel': assessment.barthel_score,
+        'Total AKS+AIKS': assessment.aks_score + assessment.aiks_score,
         'Tingkat Kemandirian': tingkat.level,
         'Kriteria PJP': (tingkat.level === 'Ketergantungan Sedang' || tingkat.level === 'Ketergantungan Berat') ? 'Klien PJP' : 'Bukan Klien PJP',
       };
@@ -304,6 +315,19 @@ export default function AssessmentHistory() {
     });
   };
 
+  if (isLoading || isMigrating) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <RefreshCw className="h-12 w-12 animate-spin mx-auto text-primary" />
+          <p className="text-lg text-gray-600">
+            {isMigrating ? 'Memigrasikan data ke cloud...' : 'Memuat data assessment...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
@@ -325,6 +349,15 @@ export default function AssessmentHistory() {
         </div>
         
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={loadAssessments}
+            className="transition-all hover:scale-105"
+            title="Refresh data"
+          >
+            <RefreshCw className="h-5 w-5" />
+          </Button>
           <DataSyncButtons onDataChange={loadAssessments} />
           {filteredAssessments.length > 0 && (
             <Button 
@@ -394,7 +427,7 @@ export default function AssessmentHistory() {
       ) : (
         <div className="grid gap-4">
           {filteredAssessments.map((assessment, index) => {
-            const tingkat = getTingkatKemandirian(assessment.aksScore, assessment.aiksScore);
+            const tingkat = getTingkatKemandirian(assessment.aks_score, assessment.aiks_score);
             return (
               <Card 
                 key={assessment.id}
@@ -431,7 +464,7 @@ export default function AssessmentHistory() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Hapus Assessment?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Tindakan ini tidak dapat dibatalkan. Assessment akan dihapus permanen.
+                            Tindakan ini tidak dapat dibatalkan. Assessment akan dihapus permanen dari cloud.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -459,17 +492,17 @@ export default function AssessmentHistory() {
                     </div>
                     <div className="p-3 bg-blue-50 rounded-lg transition-all hover:bg-blue-100">
                       <p className="text-sm text-gray-600">Skor AKS</p>
-                      <p className="font-semibold text-lg text-blue-600">{assessment.aksScore} / 12</p>
+                      <p className="font-semibold text-lg text-blue-600">{assessment.aks_score} / 12</p>
                     </div>
                     <div className="p-3 bg-purple-50 rounded-lg transition-all hover:bg-purple-100">
                       <p className="text-sm text-gray-600">Skor AIKS</p>
-                      <p className="font-semibold text-lg text-purple-600">{assessment.aiksScore} / 16</p>
+                      <p className="font-semibold text-lg text-purple-600">{assessment.aiks_score} / 16</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-3 bg-emerald-50 rounded-lg transition-all hover:bg-emerald-100">
                       <p className="text-sm text-gray-600 mb-1">Barthel Index</p>
-                      <p className="font-semibold text-lg text-emerald-600">{assessment.barthelScore} / 100</p>
+                      <p className="font-semibold text-lg text-emerald-600">{assessment.barthel_score} / 100</p>
                     </div>
                     <div className="p-3 bg-gray-50 rounded-lg transition-all hover:bg-gray-100">
                       <p className="text-sm text-gray-600 mb-1">Tingkat Kemandirian</p>
@@ -598,25 +631,25 @@ export default function AssessmentHistory() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
                   <h4 className="font-bold text-blue-700 mb-2">Skor AKS</h4>
-                  <p className="text-3xl font-bold text-blue-600">{selectedAssessment.aksScore} / 12</p>
+                  <p className="text-3xl font-bold text-blue-600">{selectedAssessment.aks_score} / 12</p>
                   <p className="text-sm text-gray-600 mt-2">
-                    {getTingkatKemandirian(selectedAssessment.aksScore, selectedAssessment.aiksScore).level}
+                    {getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level}
                   </p>
                 </div>
                 
                 <div className="bg-purple-50 p-6 rounded-lg border-2 border-purple-200">
                   <h4 className="font-bold text-purple-700 mb-2">Skor AIKS</h4>
-                  <p className="text-3xl font-bold text-purple-600">{selectedAssessment.aiksScore} / 16</p>
+                  <p className="text-3xl font-bold text-purple-600">{selectedAssessment.aiks_score} / 16</p>
                   <p className="text-sm text-gray-600 mt-2">
-                    {getTingkatKemandirian(selectedAssessment.aksScore, selectedAssessment.aiksScore).level}
+                    {getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level}
                   </p>
                 </div>
                 
                 <div className="bg-emerald-50 p-6 rounded-lg border-2 border-emerald-200">
                   <h4 className="font-bold text-emerald-700 mb-2">Barthel Index</h4>
-                  <p className="text-3xl font-bold text-emerald-600">{selectedAssessment.barthelScore} / 100</p>
+                  <p className="text-3xl font-bold text-emerald-600">{selectedAssessment.barthel_score} / 100</p>
                   <p className="text-sm text-gray-600 mt-2">
-                    {getBarthelInterpretation(selectedAssessment.barthelScore).level}
+                    {getBarthelInterpretation(selectedAssessment.barthel_score).level}
                   </p>
                 </div>
               </div>
@@ -627,20 +660,20 @@ export default function AssessmentHistory() {
                   <p className="text-lg">
                     <span className="font-semibold">Total Skor AKS + AIKS:</span>{' '}
                     <span className="text-2xl font-bold text-primary">
-                      {selectedAssessment.aksScore + selectedAssessment.aiksScore} / 28
+                      {selectedAssessment.aks_score + selectedAssessment.aiks_score} / 28
                     </span>
                   </p>
                   <p className="text-lg">
                     <span className="font-semibold">Tingkat Kemandirian:</span>{' '}
-                    <Badge className={`${getTingkatKemandirian(selectedAssessment.aksScore, selectedAssessment.aiksScore).color} text-white text-base px-3 py-1`}>
-                      {getTingkatKemandirian(selectedAssessment.aksScore, selectedAssessment.aiksScore).level}
+                    <Badge className={`${getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).color} text-white text-base px-3 py-1`}>
+                      {getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level}
                     </Badge>
                   </p>
                   <p className="text-lg">
                     <span className="font-semibold">Kriteria PJP:</span>{' '}
                     <span className="font-bold text-lg">
-                      {(getTingkatKemandirian(selectedAssessment.aksScore, selectedAssessment.aiksScore).level === 'Ketergantungan Sedang' || 
-                        getTingkatKemandirian(selectedAssessment.aksScore, selectedAssessment.aiksScore).level === 'Ketergantungan Berat') 
+                      {(getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level === 'Ketergantungan Sedang' || 
+                        getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level === 'Ketergantungan Berat') 
                         ? '✓ Klien PJP' 
                         : '✗ Bukan Klien PJP'}
                     </span>

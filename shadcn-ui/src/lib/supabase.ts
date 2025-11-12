@@ -5,6 +5,8 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+const TABLE_NAME = 'app_d799d0ed4d_assessments';
+
 export interface Assessment {
   id: string;
   user_id: string;
@@ -40,6 +42,25 @@ export interface Assessment {
   updated_at?: string;
 }
 
+interface LocalStorageAssessment {
+  id: string;
+  date: string;
+  demographic: Assessment['demographic'];
+  aksScores?: Record<string, number>;
+  aks_scores?: Record<string, number>;
+  aiksScores?: Record<string, number>;
+  aiks_scores?: Record<string, number>;
+  barthelScores?: Record<string, number>;
+  barthel_scores?: Record<string, number>;
+  aksScore?: number;
+  aks_score?: number;
+  aiksScore?: number;
+  aiks_score?: number;
+  barthelScore?: number;
+  barthel_score?: number;
+  status: string;
+}
+
 // Helper function to get current user ID (from localStorage for now)
 export const getCurrentUserId = (): string => {
   let userId = localStorage.getItem('user_id');
@@ -54,7 +75,7 @@ export const getCurrentUserId = (): string => {
 export const fetchAssessments = async (): Promise<Assessment[]> => {
   const userId = getCurrentUserId();
   const { data, error } = await supabase
-    .from('assessments')
+    .from(TABLE_NAME)
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
@@ -76,7 +97,7 @@ export const saveAssessment = async (assessment: Omit<Assessment, 'created_at' |
   };
 
   const { data, error } = await supabase
-    .from('assessments')
+    .from(TABLE_NAME)
     .insert([assessmentData])
     .select()
     .single();
@@ -92,7 +113,7 @@ export const saveAssessment = async (assessment: Omit<Assessment, 'created_at' |
 // Update an existing assessment
 export const updateAssessment = async (id: string, assessment: Partial<Assessment>): Promise<Assessment> => {
   const { data, error } = await supabase
-    .from('assessments')
+    .from(TABLE_NAME)
     .update(assessment)
     .eq('id', id)
     .select()
@@ -109,7 +130,7 @@ export const updateAssessment = async (id: string, assessment: Partial<Assessmen
 // Delete an assessment
 export const deleteAssessment = async (id: string): Promise<void> => {
   const { error } = await supabase
-    .from('assessments')
+    .from(TABLE_NAME)
     .delete()
     .eq('id', id);
 
@@ -125,12 +146,14 @@ export const migrateLocalStorageToSupabase = async (): Promise<number> => {
   if (!localData) return 0;
 
   try {
-    const assessments = JSON.parse(localData);
+    const assessments: LocalStorageAssessment[] = JSON.parse(localData);
+    if (!Array.isArray(assessments) || assessments.length === 0) return 0;
+
     const userId = getCurrentUserId();
 
     // Check if data already migrated
     const { data: existingData } = await supabase
-      .from('assessments')
+      .from(TABLE_NAME)
       .select('id')
       .eq('user_id', userId);
 
@@ -140,19 +163,22 @@ export const migrateLocalStorageToSupabase = async (): Promise<number> => {
     }
 
     // Prepare data for insertion
-    const dataToInsert = assessments.map((assessment: Assessment) => ({
-      ...assessment,
+    const dataToInsert = assessments.map((assessment) => ({
+      id: assessment.id,
       user_id: userId,
+      date: assessment.date,
+      demographic: assessment.demographic,
       aks_scores: assessment.aksScores || assessment.aks_scores,
       aiks_scores: assessment.aiksScores || assessment.aiks_scores,
       barthel_scores: assessment.barthelScores || assessment.barthel_scores,
       aks_score: assessment.aksScore || assessment.aks_score,
       aiks_score: assessment.aiksScore || assessment.aiks_score,
       barthel_score: assessment.barthelScore || assessment.barthel_score,
+      status: assessment.status,
     }));
 
     const { error } = await supabase
-      .from('assessments')
+      .from(TABLE_NAME)
       .insert(dataToInsert);
 
     if (error) {

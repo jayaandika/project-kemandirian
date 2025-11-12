@@ -8,6 +8,7 @@ import AssessmentResult from '@/components/AssessmentResult';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { saveAssessment } from '@/lib/supabase';
 
 const aksItems = ['mandi', 'berpakaian', 'toileting', 'berpindah', 'kontinensia', 'makan'];
 const aiksItems = ['telepon', 'belanja', 'persiapanMakanan', 'rumahTangga', 'laundry', 'transportasi', 'obat', 'keuangan'];
@@ -40,6 +41,7 @@ export default function AssessmentForm() {
   const [aiksScores, setAiksScores] = useState<Record<string, number>>({});
   const [barthelScores, setBarthelScores] = useState<Record<string, number>>({});
   const [showResult, setShowResult] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleDemographicChange = (field: string, value: string | string[]) => {
     setDemographicData((prev) => ({ ...prev, [field]: value }));
@@ -106,35 +108,44 @@ export default function AssessmentForm() {
     }, 100);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) {
       return;
     }
 
-    const assessment = {
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      demographic: demographicData,
-      aksScores: aksScores,
-      aiksScores: aiksScores,
-      barthelScores: barthelScores,
-      aksScore: calculateTotalAKS(),
-      aiksScore: calculateTotalAIKS(),
-      barthelScore: calculateTotalBarthel(),
-      status: 'completed',
-    };
+    setIsSaving(true);
 
-    const existingAssessments = JSON.parse(localStorage.getItem('assessments') || '[]');
-    existingAssessments.push(assessment);
-    localStorage.setItem('assessments', JSON.stringify(existingAssessments));
+    try {
+      const assessment = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        demographic: demographicData,
+        aks_scores: aksScores,
+        aiks_scores: aiksScores,
+        barthel_scores: barthelScores,
+        aks_score: calculateTotalAKS(),
+        aiks_score: calculateTotalAIKS(),
+        barthel_score: calculateTotalBarthel(),
+        status: 'completed',
+      };
 
-    toast.success('Assessment berhasil disimpan!', {
-      description: 'Data telah tersimpan dan dapat dilihat di riwayat assessment',
-    });
-    
-    setTimeout(() => {
-      navigate('/dashboard/history');
-    }, 1500);
+      await saveAssessment(assessment);
+
+      toast.success('Assessment berhasil disimpan!', {
+        description: 'Data telah tersimpan di cloud dan dapat dilihat di riwayat assessment',
+      });
+      
+      setTimeout(() => {
+        navigate('/dashboard/history');
+      }, 1500);
+    } catch (error) {
+      console.error('Error saving assessment:', error);
+      toast.error('Gagal menyimpan assessment', {
+        description: 'Terjadi kesalahan saat menyimpan data. Silakan coba lagi.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -185,10 +196,11 @@ export default function AssessmentForm() {
             onClick={handleSave}
             size="lg"
             variant="outline"
+            disabled={isSaving}
             className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg font-semibold transition-all hover:scale-105 hover:shadow-lg"
           >
             <Save className="mr-2 h-5 w-5" />
-            Simpan Assessment
+            {isSaving ? 'Menyimpan...' : 'Simpan Assessment'}
           </Button>
         </div>
 
