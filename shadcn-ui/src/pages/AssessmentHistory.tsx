@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +61,20 @@ export default function AssessmentHistory() {
     }
   };
 
+  // Helper function to determine if patient is PJP client
+  const isKlienPJP = (assessment: Assessment): boolean => {
+    // Calculate total score (AKS + AIKS)
+    const totalScore = assessment.aks_score + assessment.aiks_score;
+    const maxScore = 28; // 12 (AKS) + 16 (AIKS)
+    const percentage = (totalScore / maxScore) * 100;
+
+    // Kriteria PJP: Ketergantungan Sedang atau Berat
+    // Ketergantungan Sedang: 40-59%
+    // Ketergantungan Berat: < 40%
+    // Jadi Klien PJP jika persentase < 60%
+    return percentage < 60;
+  };
+
   const filterAssessmentData = () => {
     let filtered = [...assessments];
 
@@ -74,15 +87,27 @@ export default function AssessmentHistory() {
 
     // Filter by status
     if (filterStatus !== 'all') {
-      filtered = filtered.filter((assessment) => {
-        const status = assessment.status.toLowerCase();
-        if (filterStatus === 'mandiri') {
-          return status.includes('mandiri') && !status.includes('ketergantungan');
-        } else if (filterStatus === 'ketergantungan') {
-          return status.includes('ketergantungan');
-        }
-        return true;
-      });
+      if (filterStatus === 'klien-pjp') {
+        // Klien PJP: persentase < 60%
+        filtered = filtered.filter((assessment) => isKlienPJP(assessment));
+      } else if (filterStatus === 'bukan-klien-pjp') {
+        // Bukan Klien PJP: persentase >= 60%
+        filtered = filtered.filter((assessment) => !isKlienPJP(assessment));
+      } else if (filterStatus === 'mandiri') {
+        // Mandiri: persentase >= 85%
+        filtered = filtered.filter((assessment) => {
+          const totalScore = assessment.aks_score + assessment.aiks_score;
+          const percentage = (totalScore / 28) * 100;
+          return percentage >= 85;
+        });
+      } else if (filterStatus === 'ketergantungan') {
+        // Ketergantungan: persentase < 85%
+        filtered = filtered.filter((assessment) => {
+          const totalScore = assessment.aks_score + assessment.aiks_score;
+          const percentage = (totalScore / 28) * 100;
+          return percentage < 85;
+        });
+      }
     }
 
     setFilteredAssessments(filtered);
@@ -123,6 +148,29 @@ export default function AssessmentHistory() {
   const openDeleteDialog = (assessment: Assessment) => {
     setAssessmentToDelete(assessment);
     setDeleteDialogOpen(true);
+  };
+
+  const getStatusBadge = (assessment: Assessment) => {
+    const totalScore = assessment.aks_score + assessment.aiks_score;
+    const percentage = (totalScore / 28) * 100;
+
+    if (percentage >= 85) {
+      return { label: 'Mandiri', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' };
+    } else if (percentage >= 60) {
+      return { label: 'Ketergantungan Ringan', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' };
+    } else if (percentage >= 40) {
+      return { label: 'Ketergantungan Sedang', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' };
+    } else {
+      return { label: 'Ketergantungan Berat', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' };
+    }
+  };
+
+  const getPJPBadge = (assessment: Assessment) => {
+    if (isKlienPJP(assessment)) {
+      return { label: 'Klien PJP', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' };
+    } else {
+      return { label: 'Bukan Klien PJP', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' };
+    }
   };
 
   return (
@@ -173,13 +221,15 @@ export default function AssessmentHistory() {
               />
             </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectTrigger className="w-full sm:w-[220px]">
                 <SelectValue placeholder="Filter Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Status</SelectItem>
                 <SelectItem value="mandiri">Mandiri</SelectItem>
                 <SelectItem value="ketergantungan">Ketergantungan</SelectItem>
+                <SelectItem value="klien-pjp">Klien PJP</SelectItem>
+                <SelectItem value="bukan-klien-pjp">Bukan Klien PJP</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -209,44 +259,48 @@ export default function AssessmentHistory() {
                     <TableHead className="hidden sm:table-cell">AIKS</TableHead>
                     <TableHead className="hidden md:table-cell">Barthel</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Kriteria PJP</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAssessments.map((assessment) => (
-                    <TableRow key={assessment.id}>
-                      <TableCell className="whitespace-nowrap">
-                        {new Date(assessment.date).toLocaleDateString('id-ID')}
-                      </TableCell>
-                      <TableCell className="font-medium">{assessment.demographic.nama}</TableCell>
-                      <TableCell>{assessment.demographic.usia}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{assessment.aks_score}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{assessment.aiks_score}</TableCell>
-                      <TableCell className="hidden md:table-cell">{assessment.barthel_score}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            assessment.status.toLowerCase().includes('mandiri') &&
-                            !assessment.status.toLowerCase().includes('ketergantungan')
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                          }`}
-                        >
-                          {assessment.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openDeleteDialog(assessment)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filteredAssessments.map((assessment) => {
+                    const status = getStatusBadge(assessment);
+                    const pjpStatus = getPJPBadge(assessment);
+                    
+                    return (
+                      <TableRow key={assessment.id}>
+                        <TableCell className="whitespace-nowrap">
+                          {new Date(assessment.date).toLocaleDateString('id-ID')}
+                        </TableCell>
+                        <TableCell className="font-medium">{assessment.demographic.nama}</TableCell>
+                        <TableCell>{assessment.demographic.usia}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{assessment.aks_score}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{assessment.aiks_score}</TableCell>
+                        <TableCell className="hidden md:table-cell">{assessment.barthel_score}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>
+                            {status.label}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${pjpStatus.color}`}>
+                            {pjpStatus.label}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDeleteDialog(assessment)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
