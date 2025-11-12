@@ -1,78 +1,53 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Calendar, User, Trash2, Download, FileSpreadsheet, Eye, X, RefreshCw } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ArrowLeft, Trash2, FileSpreadsheet, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
-import { DataSyncButtons } from '@/components/DataSyncButtons';
-import { fetchAssessments, deleteAssessment, migrateLocalStorageToSupabase, Assessment } from '@/lib/supabase';
+import { fetchAssessments, deleteAssessment, type Assessment } from '@/lib/supabase';
+import { exportToExcel } from '@/lib/excelExport';
 
 export default function AssessmentHistory() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [filteredAssessments, setFilteredAssessments] = useState<Assessment[]>([]);
-  const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
-  const [isMigrating, setIsMigrating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
 
   useEffect(() => {
     loadAssessments();
-    const filter = searchParams.get('filter') || 'all';
-    setActiveFilter(filter);
-  }, [searchParams]);
-
-  useEffect(() => {
-    applyFilter();
-  }, [assessments, activeFilter]);
-
-  useEffect(() => {
-    // Auto-migrate localStorage data on first load
-    const checkAndMigrate = async () => {
-      const localData = localStorage.getItem('assessments');
-      if (localData) {
-        try {
-          setIsMigrating(true);
-          const migratedCount = await migrateLocalStorageToSupabase();
-          if (migratedCount > 0) {
-            toast.success(`Berhasil memigrasikan ${migratedCount} assessment ke cloud!`, {
-              description: 'Data localStorage telah dipindahkan ke Supabase',
-            });
-            // Reload assessments after migration
-            await loadAssessments();
-          }
-        } catch (error) {
-          console.error('Migration error:', error);
-        } finally {
-          setIsMigrating(false);
-        }
-      }
-    };
-    
-    checkAndMigrate();
   }, []);
+
+  useEffect(() => {
+    filterAssessmentData();
+  }, [assessments, searchTerm, filterStatus]);
 
   const loadAssessments = async () => {
     try {
@@ -81,621 +56,232 @@ export default function AssessmentHistory() {
       setAssessments(data);
     } catch (error) {
       console.error('Error loading assessments:', error);
-      toast.error('Gagal memuat data assessment', {
-        description: 'Silakan refresh halaman atau coba lagi',
-      });
+      toast.error('Gagal memuat data assessment');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const applyFilter = () => {
-    if (activeFilter === 'all') {
-      setFilteredAssessments(assessments);
-      return;
+  const filterAssessmentData = () => {
+    let filtered = [...assessments];
+
+    // Filter by search term (nama)
+    if (searchTerm) {
+      filtered = filtered.filter((assessment) =>
+        assessment.demographic.nama.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
 
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    let filtered = assessments;
-
-    if (activeFilter === 'thisMonth') {
-      filtered = assessments.filter((assessment) => {
-        const assessmentDate = new Date(assessment.date);
-        return assessmentDate.getMonth() === currentMonth && assessmentDate.getFullYear() === currentYear;
-      });
-    } else if (activeFilter === 'klienPJP') {
-      filtered = assessments.filter((assessment) => {
-        const totalScore = assessment.aks_score + assessment.aiks_score;
-        const maxScore = 28;
-        const percentage = (totalScore / maxScore) * 100;
-        return percentage < 60;
-      });
-    } else if (activeFilter === 'bukanKlienPJP') {
-      filtered = assessments.filter((assessment) => {
-        const totalScore = assessment.aks_score + assessment.aiks_score;
-        const maxScore = 28;
-        const percentage = (totalScore / maxScore) * 100;
-        return percentage >= 60;
+    // Filter by status
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter((assessment) => {
+        const status = assessment.status.toLowerCase();
+        if (filterStatus === 'mandiri') {
+          return status.includes('mandiri') && !status.includes('ketergantungan');
+        } else if (filterStatus === 'ketergantungan') {
+          return status.includes('ketergantungan');
+        }
+        return true;
       });
     }
 
     setFilteredAssessments(filtered);
   };
 
-  const clearFilter = () => {
-    setActiveFilter('all');
-    navigate('/dashboard/history');
-  };
+  const handleDelete = async () => {
+    if (!assessmentToDelete) return;
 
-  const getFilterLabel = () => {
-    const labels: Record<string, string> = {
-      all: 'Semua Assessment',
-      thisMonth: 'Assessment Bulan Ini',
-      klienPJP: 'Klien PJP',
-      bukanKlienPJP: 'Bukan Klien PJP',
-    };
-    return labels[activeFilter] || 'Semua Assessment';
-  };
-
-  const handleDelete = async (id: string) => {
     try {
-      await deleteAssessment(id);
-      await loadAssessments();
+      await deleteAssessment(assessmentToDelete.id);
       toast.success('Assessment berhasil dihapus');
+      setDeleteDialogOpen(false);
+      setAssessmentToDelete(null);
+      loadAssessments();
     } catch (error) {
       console.error('Error deleting assessment:', error);
-      toast.error('Gagal menghapus assessment', {
-        description: 'Silakan coba lagi',
-      });
+      toast.error('Gagal menghapus assessment');
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const getTingkatKemandirian = (aksScore: number, aiksScore: number) => {
-    const totalScore = aksScore + aiksScore;
-    const maxScore = 28;
-    const percentage = (totalScore / maxScore) * 100;
-    
-    if (percentage >= 85) return { level: 'Mandiri', color: 'bg-green-500' };
-    if (percentage >= 60) return { level: 'Ketergantungan Ringan', color: 'bg-yellow-500' };
-    if (percentage >= 40) return { level: 'Ketergantungan Sedang', color: 'bg-orange-500' };
-    return { level: 'Ketergantungan Berat', color: 'bg-red-500' };
-  };
-
-  const getBarthelInterpretation = (score: number) => {
-    if (score === 100) return { level: 'Mandiri', color: 'bg-green-500' };
-    if (score >= 60) return { level: 'Ketergantungan Ringan', color: 'bg-blue-500' };
-    if (score >= 40) return { level: 'Ketergantungan Sedang', color: 'bg-yellow-500' };
-    if (score >= 20) return { level: 'Ketergantungan Berat', color: 'bg-orange-500' };
-    return { level: 'Ketergantungan Total', color: 'bg-red-500' };
-  };
-
-  const formatStatusPernikahan = (status?: string) => {
-    if (!status) return '-';
-    const statusMap: Record<string, string> = {
-      'belum-menikah': 'Belum Menikah',
-      'menikah': 'Menikah',
-      'cerai': 'Cerai',
-      'janda-duda': 'Janda/Duda',
-    };
-    return statusMap[status] || status;
-  };
-
-  const formatPendidikan = (pendidikan?: string) => {
-    if (!pendidikan) return '-';
-    const pendidikanMap: Record<string, string> = {
-      'tidak-sekolah': 'Tidak Sekolah',
-      'sd': 'SD',
-      'smp': 'SMP',
-      'sma': 'SMA',
-      'diploma': 'Diploma',
-      's1': 'S1',
-      's2': 'S2',
-      's3': 'S3',
-    };
-    return pendidikanMap[pendidikan] || pendidikan;
-  };
-
-  const formatLamaPenyakit = (lama?: string) => {
-    if (!lama) return '-';
-    const lamaMap: Record<string, string> = {
-      'kurang-1-tahun': '< 1 tahun',
-      '1-5-tahun': '1-5 tahun',
-      '5-10-tahun': '5-10 tahun',
-      'lebih-10-tahun': '> 10 tahun',
-    };
-    return lamaMap[lama] || lama;
-  };
-
-  const formatKendaraan = (kendaraan?: string) => {
-    if (!kendaraan) return '-';
-    const kendaraanMap: Record<string, string> = {
-      'mobil': 'Memiliki Mobil',
-      'motor': 'Memiliki Sepeda Motor',
-      'mobil-motor': 'Memiliki Mobil dan Sepeda Motor',
-      'tidak-memiliki': 'Tidak Memiliki',
-    };
-    return kendaraanMap[kendaraan] || kendaraan;
-  };
-
-  const formatAsuransi = (asuransi?: string) => {
-    if (!asuransi) return '-';
-    const asuransiMap: Record<string, string> = {
-      'bpjs-mandiri': 'BPJS Kesehatan Mandiri',
-      'bpjs-pegawai': 'BPJS Kesehatan Pegawai/Pensiunan',
-      'bpjs-kis': 'BPJS KIS',
-      'asuransi-lain': 'Asuransi Lain',
-    };
-    return asuransiMap[asuransi] || asuransi;
-  };
-
-  const handleViewDetail = (assessment: Assessment) => {
-    setSelectedAssessment(assessment);
-    setDetailDialogOpen(true);
-  };
-
-  const exportToExcel = () => {
-    const dataToExport = activeFilter === 'all' ? assessments : filteredAssessments;
-    
-    if (dataToExport.length === 0) {
+  const handleExportToExcel = () => {
+    if (filteredAssessments.length === 0) {
       toast.error('Tidak ada data untuk diekspor');
       return;
     }
 
-    const exportData = dataToExport.map((assessment, index) => {
-      const tingkat = getTingkatKemandirian(assessment.aks_score, assessment.aiks_score);
-      return {
-        'No': index + 1,
-        'Tanggal': formatDate(assessment.date),
-        'Nama': assessment.demographic.nama,
-        'Usia': assessment.demographic.usia,
-        'Jenis Kelamin': assessment.demographic.jenisKelamin,
-        'Alamat': assessment.demographic.alamat || '-',
-        'No Telepon': assessment.demographic.noTelepon || '-',
-        'Tinggal Dengan': assessment.demographic.tinggalDengan || '-',
-        'Pekerjaan': assessment.demographic.pekerjaan || '-',
-        'Status Pernikahan': formatStatusPernikahan(assessment.demographic.statusPernikahan),
-        'Pendidikan Terakhir': formatPendidikan(assessment.demographic.pendidikanTerakhir),
-        'Penyakit Kronis': assessment.demographic.penyakitKronis?.join(', ') || '-',
-        'Penyakit Kronis Lainnya': assessment.demographic.penyakitKronisLainnya || '-',
-        'Lama Penyakit Kronis': formatLamaPenyakit(assessment.demographic.lamaPenyakitKronis),
-        'Kontrol Rutin': assessment.demographic.kontrolRutin === 'ya' ? 'Ya' : assessment.demographic.kontrolRutin === 'tidak' ? 'Tidak' : '-',
-        'Frekuensi Kontrol': assessment.demographic.frekuensiKontrol || '-',
-        'Kepemilikan Asuransi': formatAsuransi(assessment.demographic.kepemilikanAsuransi),
-        'Kepemilikan Kendaraan': formatKendaraan(assessment.demographic.kepemilikanKendaraan),
-        'Kendala Transportasi': assessment.demographic.kendalaTransportasi === 'ya' ? 'Ya' : assessment.demographic.kendalaTransportasi === 'tidak' ? 'Tidak' : '-',
-        'Detail Kendala Transportasi': assessment.demographic.detailKendalaTransportasi || '-',
-        'Skor AKS': assessment.aks_score,
-        'Skor AIKS': assessment.aiks_score,
-        'Skor Barthel': assessment.barthel_score,
-        'Total AKS+AIKS': assessment.aks_score + assessment.aiks_score,
-        'Tingkat Kemandirian': tingkat.level,
-        'Kriteria PJP': (tingkat.level === 'Ketergantungan Sedang' || tingkat.level === 'Ketergantungan Berat') ? 'Klien PJP' : 'Bukan Klien PJP',
-      };
-    });
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    
-    const colWidths = [
-      { wch: 5 },  { wch: 20 }, { wch: 25 }, { wch: 8 },  { wch: 15 },
-      { wch: 30 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 20 },
-      { wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 20 }, { wch: 15 },
-      { wch: 30 }, { wch: 30 }, { wch: 25 }, { wch: 20 }, { wch: 35 },
-      { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 15 }, { wch: 25 },
-      { wch: 15 },
-    ];
-    ws['!cols'] = colWidths;
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Rekapan Assessment');
-
-    const currentDate = new Date().toLocaleDateString('id-ID', {
-      year: 'numeric',
-      month: 'long',
-    });
-    
-    const filterSuffix = activeFilter !== 'all' ? `_${getFilterLabel().replace(/ /g, '_')}` : '';
-    XLSX.writeFile(wb, `Rekapan_Assessment${filterSuffix}_${currentDate}.xlsx`);
-    
-    toast.success('Data berhasil diekspor ke Excel!', {
-      description: `File: Rekapan_Assessment${filterSuffix}_${currentDate}.xlsx`,
-    });
+    try {
+      exportToExcel(filteredAssessments);
+      toast.success('Data berhasil diekspor ke Excel', {
+        description: `${filteredAssessments.length} assessment telah diekspor`,
+      });
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Gagal mengekspor data ke Excel');
+    }
   };
 
-  if (isLoading || isMigrating) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-4">
-          <RefreshCw className="h-12 w-12 animate-spin mx-auto text-primary" />
-          <p className="text-lg text-gray-600">
-            {isMigrating ? 'Memigrasikan data ke cloud...' : 'Memuat data assessment...'}
+  const openDeleteDialog = (assessment: Assessment) => {
+    setAssessmentToDelete(assessment);
+    setDeleteDialogOpen(true);
+  };
+
+  return (
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
+      <div className="flex items-center gap-2 sm:gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/dashboard')}
+          className="transition-transform hover:scale-110 flex-shrink-0"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
+            Riwayat Assessment
+          </h2>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 truncate">
+            Lihat dan kelola data assessment yang telah disimpan
           </p>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500 px-2 sm:px-0">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => navigate('/dashboard')}
-            className="transition-transform hover:scale-110 flex-shrink-0"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
-              Riwayat Assessment
-            </h2>
-            <p className="text-sm sm:text-base text-gray-600 truncate">Daftar semua assessment yang telah dilakukan</p>
-          </div>
-        </div>
-        
-        <div className="flex gap-2 w-full sm:w-auto justify-end">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={loadAssessments}
-            className="transition-all hover:scale-105 flex-shrink-0"
-            title="Refresh data"
-          >
-            <RefreshCw className="h-5 w-5" />
-          </Button>
-          <DataSyncButtons onDataChange={loadAssessments} />
-          {filteredAssessments.length > 0 && (
-            <Button 
-              onClick={exportToExcel}
-              className="transition-all hover:scale-105 hover:shadow-lg hidden sm:flex"
-              size="lg"
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <CardTitle className="text-lg sm:text-xl">Data Assessment</CardTitle>
+            <Button
+              onClick={handleExportToExcel}
+              disabled={filteredAssessments.length === 0}
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
             >
-              <FileSpreadsheet className="mr-2 h-5 w-5" />
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
               Export ke Excel
             </Button>
-          )}
-          {filteredAssessments.length > 0 && (
-            <Button 
-              onClick={exportToExcel}
-              className="transition-all hover:scale-105 hover:shadow-lg sm:hidden"
-              size="icon"
-              title="Export ke Excel"
-            >
-              <FileSpreadsheet className="h-5 w-5" />
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {activeFilter !== 'all' && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-200 animate-in fade-in slide-in-from-top-4">
-          <Badge className="bg-blue-500 text-white text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2">
-            {getFilterLabel()}
-          </Badge>
-          <span className="text-xs sm:text-sm text-gray-600">
-            Menampilkan {filteredAssessments.length} dari {assessments.length} assessment
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilter}
-            className="ml-0 sm:ml-auto hover:bg-blue-100 w-full sm:w-auto mt-2 sm:mt-0"
-          >
-            <X className="h-4 w-4 mr-1" />
-            Hapus Filter
-          </Button>
-        </div>
-      )}
-
-      {filteredAssessments.length === 0 ? (
-        <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <CardContent className="py-8 sm:py-12 text-center px-4">
-            <div className="mb-4 flex justify-center">
-              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gray-100 flex items-center justify-center">
-                <Download className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
-              </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Search and Filter */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Cari nama lansia..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-            <p className="text-gray-500 mb-2 text-base sm:text-lg">
-              {activeFilter === 'all' 
-                ? 'Belum ada assessment yang tersimpan' 
-                : `Tidak ada data untuk filter "${getFilterLabel()}"`}
-            </p>
-            {activeFilter !== 'all' && (
-              <Button 
-                onClick={clearFilter}
-                variant="outline"
-                className="mt-4 transition-all hover:scale-105 w-full sm:w-auto"
-              >
-                Lihat Semua Assessment
-              </Button>
-            )}
-            {activeFilter === 'all' && (
-              <Button 
-                onClick={() => navigate('/dashboard/assessment')}
-                className="mt-4 transition-all hover:scale-105 w-full sm:w-auto"
-              >
-                Tambah Assessment Pertama
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-3 sm:gap-4">
-          {filteredAssessments.map((assessment, index) => {
-            const tingkat = getTingkatKemandirian(assessment.aks_score, assessment.aiks_score);
-            return (
-              <Card 
-                key={assessment.id}
-                className="transition-all duration-300 hover:shadow-xl hover:scale-[1.01] animate-in fade-in slide-in-from-bottom-4"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <CardHeader className="pb-3 sm:pb-4">
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="space-y-1 flex-1 min-w-0">
-                      <CardTitle 
-                        className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors text-base sm:text-lg"
-                        onClick={() => handleViewDetail(assessment)}
-                      >
-                        <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-                        <span className="truncate">{assessment.demographic.nama}</span>
-                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 ml-auto text-gray-400 flex-shrink-0" />
-                      </CardTitle>
-                      <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
-                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span className="truncate">{formatDate(assessment.date)}</span>
-                      </div>
-                    </div>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-all flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10"
-                        >
-                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle className="text-base sm:text-lg">Hapus Assessment?</AlertDialogTitle>
-                          <AlertDialogDescription className="text-sm">
-                            Tindakan ini tidak dapat dibatalkan. Assessment akan dihapus permanen dari cloud.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                          <AlertDialogCancel className="w-full sm:w-auto">Batal</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => handleDelete(assessment.id)}
-                            className="bg-red-500 hover:bg-red-600 w-full sm:w-auto"
-                          >
-                            Hapus
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3 sm:space-y-4">
-                  <div className="grid grid-cols-2 gap-2 sm:gap-4">
-                    <div className="p-2 sm:p-3 bg-gray-50 rounded-lg transition-all hover:bg-gray-100">
-                      <p className="text-xs text-gray-600">Usia</p>
-                      <p className="font-semibold text-sm sm:text-lg">{assessment.demographic.usia} tahun</p>
-                    </div>
-                    <div className="p-2 sm:p-3 bg-gray-50 rounded-lg transition-all hover:bg-gray-100">
-                      <p className="text-xs text-gray-600">Jenis Kelamin</p>
-                      <p className="font-semibold text-sm sm:text-lg capitalize">{assessment.demographic.jenisKelamin}</p>
-                    </div>
-                    <div className="p-2 sm:p-3 bg-blue-50 rounded-lg transition-all hover:bg-blue-100">
-                      <p className="text-xs text-gray-600">Skor AKS</p>
-                      <p className="font-semibold text-sm sm:text-lg text-blue-600">{assessment.aks_score} / 12</p>
-                    </div>
-                    <div className="p-2 sm:p-3 bg-purple-50 rounded-lg transition-all hover:bg-purple-100">
-                      <p className="text-xs text-gray-600">Skor AIKS</p>
-                      <p className="font-semibold text-sm sm:text-lg text-purple-600">{assessment.aiks_score} / 16</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-                    <div className="p-2 sm:p-3 bg-emerald-50 rounded-lg transition-all hover:bg-emerald-100">
-                      <p className="text-xs text-gray-600 mb-1">Barthel Index</p>
-                      <p className="font-semibold text-sm sm:text-lg text-emerald-600">{assessment.barthel_score} / 100</p>
-                    </div>
-                    <div className="p-2 sm:p-3 bg-gray-50 rounded-lg transition-all hover:bg-gray-100">
-                      <p className="text-xs text-gray-600 mb-1">Tingkat Kemandirian</p>
-                      <Badge className={`${tingkat.color} text-white text-xs sm:text-sm`}>{tingkat.level}</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Filter Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="mandiri">Mandiri</SelectItem>
+                <SelectItem value="ketergantungan">Ketergantungan</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          {/* Table */}
+          {isLoading ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Memuat data...</p>
+            </div>
+          ) : filteredAssessments.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">
+                {searchTerm || filterStatus !== 'all'
+                  ? 'Tidak ada data yang sesuai dengan filter'
+                  : 'Belum ada assessment yang disimpan'}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tanggal</TableHead>
+                    <TableHead>Nama</TableHead>
+                    <TableHead>Usia</TableHead>
+                    <TableHead className="hidden sm:table-cell">AKS</TableHead>
+                    <TableHead className="hidden sm:table-cell">AIKS</TableHead>
+                    <TableHead className="hidden md:table-cell">Barthel</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAssessments.map((assessment) => (
+                    <TableRow key={assessment.id}>
+                      <TableCell className="whitespace-nowrap">
+                        {new Date(assessment.date).toLocaleDateString('id-ID')}
+                      </TableCell>
+                      <TableCell className="font-medium">{assessment.demographic.nama}</TableCell>
+                      <TableCell>{assessment.demographic.usia}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{assessment.aks_score}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{assessment.aiks_score}</TableCell>
+                      <TableCell className="hidden md:table-cell">{assessment.barthel_score}</TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            assessment.status.toLowerCase().includes('mandiri') &&
+                            !assessment.status.toLowerCase().includes('ketergantungan')
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                          }`}
+                        >
+                          {assessment.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openDeleteDialog(assessment)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {/* Summary */}
+          {filteredAssessments.length > 0 && (
+            <div className="pt-4 border-t">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Menampilkan {filteredAssessments.length} dari {assessments.length} assessment
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-xl sm:text-2xl font-bold">Detail Assessment Pasien</DialogTitle>
-            <DialogDescription className="text-sm">
-              Informasi lengkap hasil assessment kemandirian
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus assessment untuk{' '}
+              <strong>{assessmentToDelete?.demographic.nama}</strong>? Tindakan ini tidak dapat
+              dibatalkan.
             </DialogDescription>
           </DialogHeader>
-          
-          {selectedAssessment && (
-            <div className="space-y-4 sm:space-y-6 mt-4">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-6 rounded-lg">
-                <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-primary">Data Demografi</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Nama Lengkap</p>
-                    <p className="font-semibold text-sm sm:text-lg break-words">{selectedAssessment.demographic.nama}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Usia</p>
-                    <p className="font-semibold text-sm sm:text-lg">{selectedAssessment.demographic.usia} tahun</p>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Jenis Kelamin</p>
-                    <p className="font-semibold text-sm sm:text-lg capitalize">{selectedAssessment.demographic.jenisKelamin}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">No. Telepon</p>
-                    <p className="font-semibold text-sm sm:text-lg break-all">{selectedAssessment.demographic.noTelepon || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Tinggal Dengan</p>
-                    <p className="font-semibold text-sm sm:text-lg">{selectedAssessment.demographic.tinggalDengan || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Pekerjaan</p>
-                    <p className="font-semibold text-sm sm:text-lg">{selectedAssessment.demographic.pekerjaan || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Status Pernikahan</p>
-                    <p className="font-semibold text-sm sm:text-lg">{formatStatusPernikahan(selectedAssessment.demographic.statusPernikahan)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Pendidikan Terakhir</p>
-                    <p className="font-semibold text-sm sm:text-lg">{formatPendidikan(selectedAssessment.demographic.pendidikanTerakhir)}</p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <p className="text-xs sm:text-sm text-gray-600">Alamat</p>
-                    <p className="font-semibold text-sm sm:text-lg break-words">{selectedAssessment.demographic.alamat || '-'}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-rose-50 to-pink-50 p-4 sm:p-6 rounded-lg">
-                <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-rose-700">Informasi Kesehatan</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div className="sm:col-span-2">
-                    <p className="text-xs sm:text-sm text-gray-600">Penyakit Kronis</p>
-                    <p className="font-semibold text-sm sm:text-lg break-words">
-                      {selectedAssessment.demographic.penyakitKronis && selectedAssessment.demographic.penyakitKronis.length > 0
-                        ? selectedAssessment.demographic.penyakitKronis.join(', ')
-                        : '-'}
-                    </p>
-                    {selectedAssessment.demographic.penyakitKronisLainnya && (
-                      <p className="text-xs sm:text-sm mt-1 text-gray-700 break-words">Lainnya: {selectedAssessment.demographic.penyakitKronisLainnya}</p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Lama Penyakit Kronis</p>
-                    <p className="font-semibold text-sm sm:text-lg">{formatLamaPenyakit(selectedAssessment.demographic.lamaPenyakitKronis)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Kontrol Rutin</p>
-                    <p className="font-semibold text-sm sm:text-lg">
-                      {selectedAssessment.demographic.kontrolRutin === 'ya' ? 'Ya' : selectedAssessment.demographic.kontrolRutin === 'tidak' ? 'Tidak' : '-'}
-                    </p>
-                  </div>
-                  {selectedAssessment.demographic.kontrolRutin === 'ya' && (
-                    <div className="sm:col-span-2">
-                      <p className="text-xs sm:text-sm text-gray-600">Frekuensi & Tempat Kontrol</p>
-                      <p className="font-semibold text-sm sm:text-lg break-words">{selectedAssessment.demographic.frekuensiKontrol || '-'}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 sm:p-6 rounded-lg">
-                <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-emerald-700">Informasi Asuransi & Transportasi</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Kepemilikan Asuransi</p>
-                    <p className="font-semibold text-sm sm:text-lg break-words">{formatAsuransi(selectedAssessment.demographic.kepemilikanAsuransi)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Kepemilikan Kendaraan</p>
-                    <p className="font-semibold text-sm sm:text-lg break-words">{formatKendaraan(selectedAssessment.demographic.kepemilikanKendaraan)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Kendala Transportasi</p>
-                    <p className="font-semibold text-sm sm:text-lg">
-                      {selectedAssessment.demographic.kendalaTransportasi === 'ya' ? 'Ya' : selectedAssessment.demographic.kendalaTransportasi === 'tidak' ? 'Tidak' : '-'}
-                    </p>
-                  </div>
-                  {selectedAssessment.demographic.kendalaTransportasi === 'ya' && (
-                    <div className="sm:col-span-2">
-                      <p className="text-xs sm:text-sm text-gray-600">Detail Kendala Transportasi</p>
-                      <p className="font-semibold text-sm sm:text-lg break-words">{selectedAssessment.demographic.detailKendalaTransportasi || '-'}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                <div className="bg-blue-50 p-4 sm:p-6 rounded-lg border-2 border-blue-200">
-                  <h4 className="font-bold text-blue-700 mb-2 text-sm sm:text-base">Skor AKS</h4>
-                  <p className="text-2xl sm:text-3xl font-bold text-blue-600">{selectedAssessment.aks_score} / 12</p>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-2">
-                    {getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level}
-                  </p>
-                </div>
-                
-                <div className="bg-purple-50 p-4 sm:p-6 rounded-lg border-2 border-purple-200">
-                  <h4 className="font-bold text-purple-700 mb-2 text-sm sm:text-base">Skor AIKS</h4>
-                  <p className="text-2xl sm:text-3xl font-bold text-purple-600">{selectedAssessment.aiks_score} / 16</p>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-2">
-                    {getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level}
-                  </p>
-                </div>
-                
-                <div className="bg-emerald-50 p-4 sm:p-6 rounded-lg border-2 border-emerald-200">
-                  <h4 className="font-bold text-emerald-700 mb-2 text-sm sm:text-base">Barthel Index</h4>
-                  <p className="text-2xl sm:text-3xl font-bold text-emerald-600">{selectedAssessment.barthel_score} / 100</p>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-2">
-                    {getBarthelInterpretation(selectedAssessment.barthel_score).level}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 sm:p-6 rounded-lg border-2 border-amber-200">
-                <h3 className="text-lg sm:text-xl font-bold mb-3 text-amber-800">Kesimpulan</h3>
-                <div className="space-y-2">
-                  <p className="text-sm sm:text-lg">
-                    <span className="font-semibold">Total Skor AKS + AIKS:</span>{' '}
-                    <span className="text-xl sm:text-2xl font-bold text-primary">
-                      {selectedAssessment.aks_score + selectedAssessment.aiks_score} / 28
-                    </span>
-                  </p>
-                  <p className="text-sm sm:text-lg">
-                    <span className="font-semibold">Tingkat Kemandirian:</span>{' '}
-                    <Badge className={`${getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).color} text-white text-sm sm:text-base px-2 sm:px-3 py-1`}>
-                      {getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level}
-                    </Badge>
-                  </p>
-                  <p className="text-sm sm:text-lg">
-                    <span className="font-semibold">Kriteria PJP:</span>{' '}
-                    <span className="font-bold text-sm sm:text-lg">
-                      {(getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level === 'Ketergantungan Sedang' || 
-                        getTingkatKemandirian(selectedAssessment.aks_score, selectedAssessment.aiks_score).level === 'Ketergantungan Berat') 
-                        ? '✓ Klien PJP' 
-                        : '✗ Bukan Klien PJP'}
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-xs sm:text-sm text-gray-500 text-center break-words">
-                Tanggal Assessment: {formatDate(selectedAssessment.date)}
-              </div>
-            </div>
-          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Batal
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Hapus
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
