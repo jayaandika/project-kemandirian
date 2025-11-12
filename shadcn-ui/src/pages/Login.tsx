@@ -12,27 +12,42 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!username || !password) {
+      toast.error('Username dan password wajib diisi');
+      return;
+    }
+
     setIsLoading(true);
     
-    // Use the auth.ts login function
-    const user = login(username, password);
-    
-    if (user) {
-      // Also set isAuthenticated for backward compatibility
-      localStorage.setItem('isAuthenticated', 'true');
-      toast.success('Login berhasil!', {
-        description: `Selamat datang, ${user.name}`,
-      });
+    try {
+      // Use the auth.ts login function (async)
+      const user = await login(username, password);
       
-      // Small delay to ensure localStorage is set before navigation
-      setTimeout(() => {
-        navigate('/dashboard', { replace: true });
+      if (user) {
+        // Also set isAuthenticated for backward compatibility
+        localStorage.setItem('isAuthenticated', 'true');
+        toast.success('Login berhasil!', {
+          description: `Selamat datang, ${user.name}`,
+        });
+        
+        // Small delay to ensure localStorage is set before navigation
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 100);
+      } else {
+        toast.error('Login gagal', {
+          description: 'Username atau password salah',
+        });
         setIsLoading(false);
-      }, 100);
-    } else {
-      toast.error('Username atau password salah');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Terjadi kesalahan', {
+        description: 'Gagal melakukan login. Silakan coba lagi.',
+      });
       setIsLoading(false);
     }
   };
