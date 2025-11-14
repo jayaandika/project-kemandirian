@@ -26,11 +26,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Trash2, FileSpreadsheet, Search, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Trash2, FileSpreadsheet, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchAssessments, deleteAssessment, type Assessment } from '@/lib/supabase';
 import { exportToExcel } from '@/lib/excelExport';
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 
 export default function AssessmentHistory() {
   const navigate = useNavigate();
@@ -41,7 +40,6 @@ export default function AssessmentHistory() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
-  const [showChart, setShowChart] = useState(false);
 
   useEffect(() => {
     loadAssessments();
@@ -184,38 +182,6 @@ export default function AssessmentHistory() {
     }
   };
 
-  // Prepare chart data
-  const getChartData = () => {
-    const klienPJP = filteredAssessments.filter(a => isKlienPJP(a)).length;
-    const bukanKlienPJP = filteredAssessments.filter(a => !isKlienPJP(a)).length;
-    
-    const mandiri = filteredAssessments.filter(a => getOverallPercentage(a) >= 85).length;
-    const ketergantunganRingan = filteredAssessments.filter(a => {
-      const p = getOverallPercentage(a);
-      return p >= 60 && p < 85;
-    }).length;
-    const ketergantunganSedang = filteredAssessments.filter(a => {
-      const p = getOverallPercentage(a);
-      return p >= 40 && p < 60;
-    }).length;
-    const ketergantunganBerat = filteredAssessments.filter(a => getOverallPercentage(a) < 40).length;
-
-    return {
-      pjpData: [
-        { name: 'Klien PJP', value: klienPJP, fill: '#ef4444' },
-        { name: 'Bukan Klien PJP', value: bukanKlienPJP, fill: '#3b82f6' },
-      ],
-      statusData: [
-        { name: 'Mandiri', value: mandiri, fill: '#22c55e' },
-        { name: 'Ketergantungan Ringan', value: ketergantunganRingan, fill: '#eab308' },
-        { name: 'Ketergantungan Sedang', value: ketergantunganSedang, fill: '#f97316' },
-        { name: 'Ketergantungan Berat', value: ketergantunganBerat, fill: '#ef4444' },
-      ],
-    };
-  };
-
-  const chartData = getChartData();
-
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center gap-2 sm:gap-4">
@@ -241,68 +207,17 @@ export default function AssessmentHistory() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <CardTitle className="text-lg sm:text-xl">Data Assessment</CardTitle>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button
-                onClick={() => setShowChart(!showChart)}
-                variant="outline"
-                className="flex-1 sm:flex-initial"
-              >
-                <BarChart3 className="mr-2 h-4 w-4" />
-                {showChart ? 'Sembunyikan Grafik' : 'Tampilkan Grafik'}
-              </Button>
-              <Button
-                onClick={handleExportToExcel}
-                disabled={filteredAssessments.length === 0}
-                className="flex-1 sm:flex-initial bg-green-600 hover:bg-green-700"
-              >
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Export Excel
-              </Button>
-            </div>
+            <Button
+              onClick={handleExportToExcel}
+              disabled={filteredAssessments.length === 0}
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+            >
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Export Excel
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Chart Section */}
-          {showChart && filteredAssessments.length > 0 && (
-            <div className="space-y-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Statistik Kriteria PJP</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={chartData.pjpData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="value" name="Jumlah">
-                      {chartData.pjpData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Statistik Tingkat Kemandirian</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={chartData.statusData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="value" name="Jumlah">
-                      {chartData.statusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-
           {/* Search and Filter */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">

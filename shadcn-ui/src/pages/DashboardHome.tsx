@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ClipboardList, Users, TrendingUp, Calendar, FileText } from 'lucide-react';
 import { DataSyncButtons } from '@/components/DataSyncButtons';
-import { fetchAssessments, migrateLocalStorageToSupabase } from '@/lib/supabase';
+import { fetchAssessments, migrateLocalStorageToSupabase, type Assessment } from '@/lib/supabase';
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 
 export default function DashboardHome() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function DashboardHome() {
   const [klienPJPCount, setKlienPJPCount] = useState(0);
   const [bukanKlienPJPCount, setBukanKlienPJPCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
 
   useEffect(() => {
     loadStatistics();
@@ -30,37 +32,57 @@ export default function DashboardHome() {
     }
   };
 
+  // Helper function to determine if patient is PJP client based on NEW criteria
+  const isKlienPJP = (assessment: Assessment): boolean => {
+    // AKS: Skor < 10 = PJP (based on new max 17)
+    const aksIsPJP = assessment.aks_score < 10;
+    
+    // AIKS: Skor < 3 = PJP
+    const aiksIsPJP = assessment.aiks_score < 3;
+    
+    // Patient is PJP if either AKS or AIKS indicates PJP
+    return aksIsPJP || aiksIsPJP;
+  };
+
+  // Calculate percentage for AKS (max 17)
+  const getAKSPercentage = (score: number): number => {
+    return Math.round((score / 17) * 100);
+  };
+
+  // Calculate percentage for AIKS (max 8)
+  const getAIKSPercentage = (score: number): number => {
+    return Math.round((score / 8) * 100);
+  };
+
+  // Calculate overall percentage
+  const getOverallPercentage = (assessment: Assessment): number => {
+    const aksPercentage = getAKSPercentage(assessment.aks_score);
+    const aiksPercentage = getAIKSPercentage(assessment.aiks_score);
+    return Math.round((aksPercentage + aiksPercentage) / 2);
+  };
+
   const loadStatistics = async () => {
     try {
       setIsLoading(true);
-      const assessments = await fetchAssessments();
+      const data = await fetchAssessments();
+      setAssessments(data);
       
-      setTotalAssessments(assessments.length);
+      setTotalAssessments(data.length);
 
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
 
-      const thisMonth = assessments.filter((assessment) => {
+      const thisMonth = data.filter((assessment) => {
         const assessmentDate = new Date(assessment.date);
         return assessmentDate.getMonth() === currentMonth && assessmentDate.getFullYear() === currentYear;
       });
       setThisMonthCount(thisMonth.length);
 
-      const klienPJP = assessments.filter((assessment) => {
-        const totalScore = assessment.aks_score + assessment.aiks_score;
-        const maxScore = 28;
-        const percentage = (totalScore / maxScore) * 100;
-        return percentage < 60;
-      });
+      const klienPJP = data.filter((assessment) => isKlienPJP(assessment));
       setKlienPJPCount(klienPJP.length);
 
-      const bukanKlienPJP = assessments.filter((assessment) => {
-        const totalScore = assessment.aks_score + assessment.aiks_score;
-        const maxScore = 28;
-        const percentage = (totalScore / maxScore) * 100;
-        return percentage >= 60;
-      });
+      const bukanKlienPJP = data.filter((assessment) => !isKlienPJP(assessment));
       setBukanKlienPJPCount(bukanKlienPJP.length);
     } catch (error) {
       console.error('Error loading statistics:', error);
@@ -72,6 +94,38 @@ export default function DashboardHome() {
   const handleNavigateWithFilter = (filter: string) => {
     navigate(`/dashboard/history?filter=${filter}`);
   };
+
+  // Prepare chart data
+  const getChartData = () => {
+    const klienPJP = assessments.filter(a => isKlienPJP(a)).length;
+    const bukanKlienPJP = assessments.filter(a => !isKlienPJP(a)).length;
+    
+    const mandiri = assessments.filter(a => getOverallPercentage(a) >= 85).length;
+    const ketergantunganRingan = assessments.filter(a => {
+      const p = getOverallPercentage(a);
+      return p >= 60 && p < 85;
+    }).length;
+    const ketergantunganSedang = assessments.filter(a => {
+      const p = getOverallPercentage(a);
+      return p >= 40 && p < 60;
+    }).length;
+    const ketergantunganBerat = assessments.filter(a => getOverallPercentage(a) < 40).length;
+
+    return {
+      pjpData: [
+        { name: 'Klien PJP', value: klienPJP, fill: '#ef4444' },
+        { name: 'Bukan Klien PJP', value: bukanKlienPJP, fill: '#3b82f6' },
+      ],
+      statusData: [
+        { name: 'Mandiri', value: mandiri, fill: '#22c55e' },
+        { name: 'Ketergantungan Ringan', value: ketergantunganRingan, fill: '#eab308' },
+        { name: 'Ketergantungan Sedang', value: ketergantunganSedang, fill: '#f97316' },
+        { name: 'Ketergantungan Berat', value: ketergantunganBerat, fill: '#ef4444' },
+      ],
+    };
+  };
+
+  const chartData = getChartData();
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 px-2 sm:px-0">
@@ -150,6 +204,54 @@ export default function DashboardHome() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Chart Section */}
+      {assessments.length > 0 && (
+        <div className="space-y-6 animate-in slide-in-from-bottom-4 delay-400">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Statistik Assessment</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Kriteria PJP</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData.pjpData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="value" name="Jumlah">
+                      {chartData.pjpData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Tingkat Kemandirian</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData.statusData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="value" name="Jumlah">
+                      {chartData.statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <Card className="transition-all duration-300 hover:shadow-xl animate-in slide-in-from-left-4 delay-500">
