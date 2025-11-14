@@ -96,14 +96,6 @@ export default function Login() {
             >
               {isLoading ? 'Memproses...' : 'Login'}
             </Button>
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-gray-700 font-medium mb-2">Demo Credentials:</p>
-              <p className="text-sm text-gray-600">Username: <span className="font-mono font-semibold">admin</span></p>
-              <p className="text-sm text-gray-600">Password: <span className="font-mono font-semibold">admin123</span></p>
-              <p className="text-xs text-gray-500 mt-3">
-                💡 <strong>Catatan:</strong> Semua device yang login akan melihat data yang sama (shared database)
-              </p>
-            </div>
           </form>
         </CardContent>
       </Card>
