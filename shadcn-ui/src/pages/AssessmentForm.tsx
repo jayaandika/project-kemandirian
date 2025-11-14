@@ -39,6 +39,7 @@ export default function AssessmentForm() {
 
   const [aksScores, setAksScores] = useState<Record<string, number>>({});
   const [aiksScores, setAiksScores] = useState<Record<string, number>>({});
+  const [aiksSelectedOptions, setAiksSelectedOptions] = useState<Record<string, string>>({});
   const [barthelScores, setBarthelScores] = useState<Record<string, number>>({});
   const [showResult, setShowResult] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -51,8 +52,9 @@ export default function AssessmentForm() {
     setAksScores((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAiksChange = (field: string, value: number) => {
+  const handleAiksChange = (field: string, value: number, optionText: string) => {
     setAiksScores((prev) => ({ ...prev, [field]: value }));
+    setAiksSelectedOptions((prev) => ({ ...prev, [field]: optionText }));
   };
 
   const handleBarthelChange = (field: string, value: number) => {
@@ -122,6 +124,7 @@ export default function AssessmentForm() {
         demographic: demographicData,
         aks_scores: aksScores,
         aiks_scores: aiksScores,
+        aiks_selected_options: aiksSelectedOptions,
         barthel_scores: barthelScores,
         aks_score: calculateTotalAKS(),
         aiks_score: calculateTotalAIKS(),
@@ -172,7 +175,7 @@ export default function AssessmentForm() {
         </div>
 
         <div className="animate-in slide-in-from-bottom-4 duration-500 delay-200">
-          <AIKSAssessment scores={aiksScores} onChange={handleAiksChange} />
+          <AIKSAssessment scores={aiksScores} selectedOptions={aiksSelectedOptions} onChange={handleAiksChange} />
         </div>
 
         <div className="animate-in slide-in-from-bottom-4 duration-500 delay-300">

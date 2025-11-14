@@ -5,7 +5,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AIKSAssessmentProps {
   scores: Record<string, number>;
-  onChange: (field: string, value: number) => void;
+  selectedOptions: Record<string, string>;
+  onChange: (field: string, value: number, optionText: string) => void;
 }
 
 const aiksItems = [
@@ -86,7 +87,7 @@ const aiksItems = [
   },
 ];
 
-export default function AIKSAssessment({ scores, onChange }: AIKSAssessmentProps) {
+export default function AIKSAssessment({ scores, selectedOptions, onChange }: AIKSAssessmentProps) {
   const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
   const allFilled = aiksItems.every((item) => scores[item.id] !== undefined && scores[item.id] !== null);
 
@@ -121,10 +122,18 @@ export default function AIKSAssessment({ scores, onChange }: AIKSAssessmentProps
             <Label className="text-lg font-semibold">
               {index + 1}. {item.label}
             </Label>
-            <RadioGroup value={scores[item.id]?.toString() || ''} onValueChange={(value) => onChange(item.id, parseInt(value))}>
+            <RadioGroup 
+              value={selectedOptions[item.id] || ''} 
+              onValueChange={(optionText) => {
+                const option = item.options.find(opt => opt.label === optionText);
+                if (option) {
+                  onChange(item.id, option.value, optionText);
+                }
+              }}
+            >
               {item.options.map((option, optIdx) => (
                 <div key={optIdx} className="flex items-start space-x-2 p-2 rounded hover:bg-gray-50 transition-colors">
-                  <RadioGroupItem value={option.value.toString()} id={`${item.id}-${optIdx}`} className="mt-1" />
+                  <RadioGroupItem value={option.label} id={`${item.id}-${optIdx}`} className="mt-1" />
                   <Label htmlFor={`${item.id}-${optIdx}`} className="font-normal cursor-pointer flex-1 leading-relaxed">
                     {option.label} <span className="text-gray-500">({option.value} poin)</span>
                   </Label>
@@ -154,7 +163,7 @@ export default function AIKSAssessment({ scores, onChange }: AIKSAssessmentProps
             <div>• Skor 3-8: Independen/Mandiri - <strong>Bukan PJP</strong></div>
           </div>
           <div className="mt-3 text-xs text-gray-600 italic">
-            Kondisi lansia yang memerlukan PJP adalah berdasarkan penilaian AKS tingkat ketergantungan sedang (B), berat (C), dan total serta
+            Kondisi lansia yang memerlukan PJP adalah berdasarkan penilaian AKS tingkat ketergantungan sedang (C), berat (D), dan total (E) serta
             berdasarkan AIKS dengan hasil: perlu bantuan dan tidak dapat melakukan apa-apa
           </div>
         </div>

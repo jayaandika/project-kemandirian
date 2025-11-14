@@ -96,17 +96,17 @@ export default function AKSAssessment({ scores, onChange }: AKSAssessmentProps) 
   const allFilled = aksItems.every((item) => scores[item.id] !== undefined && scores[item.id] !== null);
 
   const getInterpretation = (score: number) => {
-    if (score === 20) {
+    if (score === 17) {
       return { level: 'Mandiri (A)', category: 'Bukan PJP', color: 'bg-green-100 border-green-500' };
     }
-    if (score >= 12 && score <= 19) {
+    if (score >= 10 && score <= 16) {
       return { level: 'Ketergantungan ringan (B)', category: 'Bukan PJP', color: 'bg-yellow-100 border-yellow-500' };
     }
-    if (score >= 9 && score <= 11) {
+    if (score >= 6 && score <= 9) {
       return { level: 'Ketergantungan sedang (C)', category: 'PJP', color: 'bg-orange-100 border-orange-500' };
     }
-    if (score >= 5 && score <= 8) {
-      return { level: 'Ketergantungan sedang (C)', category: 'PJP', color: 'bg-orange-100 border-orange-500' };
+    if (score >= 3 && score <= 5) {
+      return { level: 'Ketergantungan berat (D)', category: 'PJP', color: 'bg-red-100 border-red-500' };
     }
     return { level: 'Ketergantungan total (E)', category: 'PJP', color: 'bg-red-100 border-red-500' };
   };
@@ -146,7 +146,7 @@ export default function AKSAssessment({ scores, onChange }: AKSAssessmentProps) 
           <Alert className={`${interpretation.color} border-2 animate-in fade-in slide-in-from-bottom-4 duration-500`}>
             <AlertDescription className="space-y-2">
               <div className="font-bold text-lg">Interpretasi AKS:</div>
-              <div>Total Skor: {totalScore} / 20</div>
+              <div>Total Skor: {totalScore} / 17</div>
               <div>Tingkat Kemandirian: {interpretation.level}</div>
               <div className="font-semibold">Kategori PJP: {interpretation.category}</div>
             </AlertDescription>
@@ -156,14 +156,14 @@ export default function AKSAssessment({ scores, onChange }: AKSAssessmentProps) 
         <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <div className="text-sm font-semibold mb-2">Kriteria Hasil Tingkat Kemandirian:</div>
           <div className="text-xs space-y-1 text-gray-700">
-            <div>• Skor 20: Mandiri (A) - Bukan PJP</div>
-            <div>• Skor 12-19: Ketergantungan ringan (B) - Bukan PJP</div>
-            <div>• Skor 9-11: Ketergantungan sedang (C) - PJP</div>
-            <div>• Skor 5-8: Ketergantungan sedang (C) - PJP</div>
-            <div>• Skor 0-4: Ketergantungan total (E) - PJP</div>
+            <div>• Skor 17: Mandiri (A) - <strong>Bukan PJP</strong></div>
+            <div>• Skor 10-16: Ketergantungan ringan (B) - <strong>Bukan PJP</strong></div>
+            <div>• Skor 6-9: Ketergantungan sedang (C) - <strong>PJP</strong></div>
+            <div>• Skor 3-5: Ketergantungan berat (D) - <strong>PJP</strong></div>
+            <div>• Skor 0-2: Ketergantungan total (E) - <strong>PJP</strong></div>
           </div>
           <div className="mt-3 text-xs text-gray-600 italic">
-            Kondisi lansia yang memerlukan PJP adalah berdasarkan penilaian AKS tingkat ketergantungan sedang (B) berat (C) dan total serta
+            Kondisi lansia yang memerlukan PJP adalah berdasarkan penilaian AKS tingkat ketergantungan sedang (C), berat (D), dan total (E) serta
             berdasarkan AIKS dengan hasil: perlu bantuan dan tidak dapat melakukan apa-apa
           </div>
         </div>

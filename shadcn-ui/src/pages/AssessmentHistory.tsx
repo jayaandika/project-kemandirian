@@ -66,19 +66,19 @@ export default function AssessmentHistory() {
 
   // Helper function to determine if patient is PJP client based on NEW criteria
   const isKlienPJP = (assessment: Assessment): boolean => {
-    // AKS: Skor < 12 = PJP
-    const aksIsPJP = assessment.aks_score < 12;
+    // AKS: Skor < 10 = PJP (based on new max 17: Ketergantungan sedang C, berat D, total E)
+    const aksIsPJP = assessment.aks_score < 10;
     
-    // AIKS: Skor < 3 = PJP (based on new criteria: 0, 1, 2 = PJP; 3-8 = Bukan PJP)
+    // AIKS: Skor < 3 = PJP (based on criteria: 0, 1, 2 = PJP; 3-8 = Bukan PJP)
     const aiksIsPJP = assessment.aiks_score < 3;
     
     // Patient is PJP if either AKS or AIKS indicates PJP
     return aksIsPJP || aiksIsPJP;
   };
 
-  // Calculate percentage for AKS (max 20)
+  // Calculate percentage for AKS (max 17)
   const getAKSPercentage = (score: number): number => {
-    return Math.round((score / 20) * 100);
+    return Math.round((score / 17) * 100);
   };
 
   // Calculate percentage for AIKS (max 8)
@@ -110,14 +110,14 @@ export default function AssessmentHistory() {
       } else if (filterStatus === 'bukan-klien-pjp') {
         filtered = filtered.filter((assessment) => !isKlienPJP(assessment));
       } else if (filterStatus === 'mandiri') {
-        // Mandiri: AKS >= 12 AND AIKS >= 3
+        // Mandiri: AKS >= 10 AND AIKS >= 3
         filtered = filtered.filter((assessment) => 
-          assessment.aks_score >= 12 && assessment.aiks_score >= 3
+          assessment.aks_score >= 10 && assessment.aiks_score >= 3
         );
       } else if (filterStatus === 'ketergantungan') {
-        // Ketergantungan: AKS < 12 OR AIKS < 3
+        // Ketergantungan: AKS < 10 OR AIKS < 3
         filtered = filtered.filter((assessment) => 
-          assessment.aks_score < 12 || assessment.aiks_score < 3
+          assessment.aks_score < 10 || assessment.aiks_score < 3
         );
       }
     }
@@ -372,7 +372,7 @@ export default function AssessmentHistory() {
                         <TableCell className="font-medium">{assessment.demographic.nama}</TableCell>
                         <TableCell>{assessment.demographic.usia}</TableCell>
                         <TableCell className="hidden sm:table-cell">
-                          {assessment.aks_score}/20 ({getAKSPercentage(assessment.aks_score)}%)
+                          {assessment.aks_score}/17 ({getAKSPercentage(assessment.aks_score)}%)
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           {assessment.aiks_score}/8 ({getAIKSPercentage(assessment.aiks_score)}%)
