@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Users, TrendingUp, Calendar, FileText } from 'lucide-react';
+import { ClipboardList, Users, TrendingUp, Calendar, FileText, BarChart3 } from 'lucide-react';
 import { DataSyncButtons } from '@/components/DataSyncButtons';
 import { fetchAssessments, migrateLocalStorageToSupabase, type Assessment } from '@/lib/supabase';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
@@ -15,6 +15,7 @@ export default function DashboardHome() {
   const [bukanKlienPJPCount, setBukanKlienPJPCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [showChart, setShowChart] = useState(false);
 
   useEffect(() => {
     loadStatistics();
@@ -205,51 +206,65 @@ export default function DashboardHome() {
         </Card>
       </div>
 
-      {/* Chart Section */}
+      {/* Chart Section with Toggle Button */}
       {assessments.length > 0 && (
-        <div className="space-y-6 animate-in slide-in-from-bottom-4 delay-400">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Statistik Assessment</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Kriteria PJP</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData.pjpData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="value" name="Jumlah">
-                      {chartData.pjpData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Tingkat Kemandirian</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData.statusData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="value" name="Jumlah">
-                      {chartData.statusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="space-y-4 animate-in slide-in-from-bottom-4 delay-400">
+          <div className="flex justify-center">
+            <Button
+              onClick={() => setShowChart(!showChart)}
+              variant="outline"
+              size="lg"
+              className="transition-all hover:scale-105 hover:shadow-lg"
+            >
+              <BarChart3 className="mr-2 h-5 w-5" />
+              {showChart ? 'Sembunyikan Grafik Statistik' : 'Tampilkan Grafik Statistik'}
+            </Button>
+          </div>
+
+          {showChart && (
+            <Card className="animate-in fade-in slide-in-from-top-4 duration-500">
+              <CardHeader>
+                <CardTitle className="text-xl">Statistik Assessment</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Kriteria PJP</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={chartData.pjpData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="value" name="Jumlah">
+                        {chartData.pjpData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Tingkat Kemandirian</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={chartData.statusData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="value" name="Jumlah">
+                        {chartData.statusData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
