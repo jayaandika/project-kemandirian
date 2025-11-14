@@ -26,10 +26,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Trash2, FileSpreadsheet, Search } from 'lucide-react';
+import { ArrowLeft, Trash2, FileSpreadsheet, Search, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchAssessments, deleteAssessment, type Assessment } from '@/lib/supabase';
 import { exportToExcel } from '@/lib/excelExport';
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 
 export default function AssessmentHistory() {
   const navigate = useNavigate();
@@ -40,6 +41,7 @@ export default function AssessmentHistory() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
+  const [showChart, setShowChart] = useState(false);
 
   useEffect(() => {
     loadAssessments();
@@ -62,18 +64,33 @@ export default function AssessmentHistory() {
     }
   };
 
-  // Helper function to determine if patient is PJP client
+  // Helper function to determine if patient is PJP client based on NEW criteria
   const isKlienPJP = (assessment: Assessment): boolean => {
-    // Calculate total score (AKS + AIKS)
-    const totalScore = assessment.aks_score + assessment.aiks_score;
-    const maxScore = 28; // 12 (AKS) + 16 (AIKS)
-    const percentage = (totalScore / maxScore) * 100;
+    // AKS: Skor < 12 = PJP
+    const aksIsPJP = assessment.aks_score < 12;
+    
+    // AIKS: Skor < 3 = PJP (based on new criteria: 0, 1, 2 = PJP; 3-8 = Bukan PJP)
+    const aiksIsPJP = assessment.aiks_score < 3;
+    
+    // Patient is PJP if either AKS or AIKS indicates PJP
+    return aksIsPJP || aiksIsPJP;
+  };
 
-    // Kriteria PJP: Ketergantungan Sedang atau Berat
-    // Ketergantungan Sedang: 40-59%
-    // Ketergantungan Berat: < 40%
-    // Jadi Klien PJP jika persentase < 60%
-    return percentage < 60;
+  // Calculate percentage for AKS (max 20)
+  const getAKSPercentage = (score: number): number => {
+    return Math.round((score / 20) * 100);
+  };
+
+  // Calculate percentage for AIKS (max 8)
+  const getAIKSPercentage = (score: number): number => {
+    return Math.round((score / 8) * 100);
+  };
+
+  // Calculate overall percentage
+  const getOverallPercentage = (assessment: Assessment): number => {
+    const aksPercentage = getAKSPercentage(assessment.aks_score);
+    const aiksPercentage = getAIKSPercentage(assessment.aiks_score);
+    return Math.round((aksPercentage + aiksPercentage) / 2);
   };
 
   const filterAssessmentData = () => {
@@ -89,25 +106,19 @@ export default function AssessmentHistory() {
     // Filter by status
     if (filterStatus !== 'all') {
       if (filterStatus === 'klien-pjp') {
-        // Klien PJP: persentase < 60%
         filtered = filtered.filter((assessment) => isKlienPJP(assessment));
       } else if (filterStatus === 'bukan-klien-pjp') {
-        // Bukan Klien PJP: persentase >= 60%
         filtered = filtered.filter((assessment) => !isKlienPJP(assessment));
       } else if (filterStatus === 'mandiri') {
-        // Mandiri: persentase >= 85%
-        filtered = filtered.filter((assessment) => {
-          const totalScore = assessment.aks_score + assessment.aiks_score;
-          const percentage = (totalScore / 28) * 100;
-          return percentage >= 85;
-        });
+        // Mandiri: AKS >= 12 AND AIKS >= 3
+        filtered = filtered.filter((assessment) => 
+          assessment.aks_score >= 12 && assessment.aiks_score >= 3
+        );
       } else if (filterStatus === 'ketergantungan') {
-        // Ketergantungan: persentase < 85%
-        filtered = filtered.filter((assessment) => {
-          const totalScore = assessment.aks_score + assessment.aiks_score;
-          const percentage = (totalScore / 28) * 100;
-          return percentage < 85;
-        });
+        // Ketergantungan: AKS < 12 OR AIKS < 3
+        filtered = filtered.filter((assessment) => 
+          assessment.aks_score < 12 || assessment.aiks_score < 3
+        );
       }
     }
 
@@ -152,14 +163,13 @@ export default function AssessmentHistory() {
   };
 
   const getStatusBadge = (assessment: Assessment) => {
-    const totalScore = assessment.aks_score + assessment.aiks_score;
-    const percentage = (totalScore / 28) * 100;
+    const overallPercentage = getOverallPercentage(assessment);
 
-    if (percentage >= 85) {
+    if (overallPercentage >= 85) {
       return { label: 'Mandiri', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' };
-    } else if (percentage >= 60) {
+    } else if (overallPercentage >= 60) {
       return { label: 'Ketergantungan Ringan', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' };
-    } else if (percentage >= 40) {
+    } else if (overallPercentage >= 40) {
       return { label: 'Ketergantungan Sedang', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' };
     } else {
       return { label: 'Ketergantungan Berat', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' };
@@ -173,6 +183,38 @@ export default function AssessmentHistory() {
       return { label: 'Bukan Klien PJP', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' };
     }
   };
+
+  // Prepare chart data
+  const getChartData = () => {
+    const klienPJP = filteredAssessments.filter(a => isKlienPJP(a)).length;
+    const bukanKlienPJP = filteredAssessments.filter(a => !isKlienPJP(a)).length;
+    
+    const mandiri = filteredAssessments.filter(a => getOverallPercentage(a) >= 85).length;
+    const ketergantunganRingan = filteredAssessments.filter(a => {
+      const p = getOverallPercentage(a);
+      return p >= 60 && p < 85;
+    }).length;
+    const ketergantunganSedang = filteredAssessments.filter(a => {
+      const p = getOverallPercentage(a);
+      return p >= 40 && p < 60;
+    }).length;
+    const ketergantunganBerat = filteredAssessments.filter(a => getOverallPercentage(a) < 40).length;
+
+    return {
+      pjpData: [
+        { name: 'Klien PJP', value: klienPJP, fill: '#ef4444' },
+        { name: 'Bukan Klien PJP', value: bukanKlienPJP, fill: '#3b82f6' },
+      ],
+      statusData: [
+        { name: 'Mandiri', value: mandiri, fill: '#22c55e' },
+        { name: 'Ketergantungan Ringan', value: ketergantunganRingan, fill: '#eab308' },
+        { name: 'Ketergantungan Sedang', value: ketergantunganSedang, fill: '#f97316' },
+        { name: 'Ketergantungan Berat', value: ketergantunganBerat, fill: '#ef4444' },
+      ],
+    };
+  };
+
+  const chartData = getChartData();
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
@@ -199,17 +241,68 @@ export default function AssessmentHistory() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <CardTitle className="text-lg sm:text-xl">Data Assessment</CardTitle>
-            <Button
-              onClick={handleExportToExcel}
-              disabled={filteredAssessments.length === 0}
-              className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
-            >
-              <FileSpreadsheet className="mr-2 h-4 w-4" />
-              Export ke Excel
-            </Button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button
+                onClick={() => setShowChart(!showChart)}
+                variant="outline"
+                className="flex-1 sm:flex-initial"
+              >
+                <BarChart3 className="mr-2 h-4 w-4" />
+                {showChart ? 'Sembunyikan Grafik' : 'Tampilkan Grafik'}
+              </Button>
+              <Button
+                onClick={handleExportToExcel}
+                disabled={filteredAssessments.length === 0}
+                className="flex-1 sm:flex-initial bg-green-600 hover:bg-green-700"
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Export Excel
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Chart Section */}
+          {showChart && filteredAssessments.length > 0 && (
+            <div className="space-y-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Statistik Kriteria PJP</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={chartData.pjpData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="value" name="Jumlah">
+                      {chartData.pjpData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Statistik Tingkat Kemandirian</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={chartData.statusData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="value" name="Jumlah">
+                      {chartData.statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
           {/* Search and Filter */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
@@ -259,6 +352,7 @@ export default function AssessmentHistory() {
                     <TableHead className="hidden sm:table-cell">AKS</TableHead>
                     <TableHead className="hidden sm:table-cell">AIKS</TableHead>
                     <TableHead className="hidden md:table-cell">Barthel</TableHead>
+                    <TableHead>% Kemandirian</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Kriteria PJP</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
@@ -268,6 +362,7 @@ export default function AssessmentHistory() {
                   {filteredAssessments.map((assessment) => {
                     const status = getStatusBadge(assessment);
                     const pjpStatus = getPJPBadge(assessment);
+                    const overallPercentage = getOverallPercentage(assessment);
                     
                     return (
                       <TableRow key={assessment.id}>
@@ -276,9 +371,16 @@ export default function AssessmentHistory() {
                         </TableCell>
                         <TableCell className="font-medium">{assessment.demographic.nama}</TableCell>
                         <TableCell>{assessment.demographic.usia}</TableCell>
-                        <TableCell className="hidden sm:table-cell">{assessment.aks_score}</TableCell>
-                        <TableCell className="hidden sm:table-cell">{assessment.aiks_score}</TableCell>
-                        <TableCell className="hidden md:table-cell">{assessment.barthel_score}</TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          {assessment.aks_score}/20 ({getAKSPercentage(assessment.aks_score)}%)
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          {assessment.aiks_score}/8 ({getAIKSPercentage(assessment.aiks_score)}%)
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">{assessment.barthel_score}/100</TableCell>
+                        <TableCell>
+                          <span className="font-semibold">{overallPercentage}%</span>
+                        </TableCell>
                         <TableCell>
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>
                             {status.label}
