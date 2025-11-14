@@ -10,7 +10,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveAssessment } from '@/lib/supabase';
 
-const aksItems = ['mandi', 'berpakaian', 'toileting', 'berpindah', 'kontinensia', 'makan'];
+const aksItems = ['bab', 'bak', 'membersihkan', 'makan', 'berpindah', 'berjalan', 'berpakaian', 'tangga', 'mandi'];
 const aiksItems = ['telepon', 'belanja', 'persiapanMakanan', 'rumahTangga', 'laundry', 'transportasi', 'obat', 'keuangan'];
 const barthelItems = ['makan', 'mandi', 'perawatanDiri', 'berpakaian', 'buangAirBesar', 'buangAirKecil', 'toilet', 'transfer', 'mobilitas', 'tangga'];
 
@@ -77,19 +77,19 @@ export default function AssessmentForm() {
       return false;
     }
 
-    const aksComplete = aksItems.every(item => aksScores[item] !== undefined && aksScores[item] !== null);
+    const aksComplete = aksItems.every((item) => aksScores[item] !== undefined && aksScores[item] !== null);
     if (!aksComplete) {
       toast.error('Mohon lengkapi semua penilaian AKS');
       return false;
     }
 
-    const aiksComplete = aiksItems.every(item => aiksScores[item] !== undefined && aiksScores[item] !== null);
+    const aiksComplete = aiksItems.every((item) => aiksScores[item] !== undefined && aiksScores[item] !== null);
     if (!aiksComplete) {
       toast.error('Mohon lengkapi semua penilaian AIKS');
       return false;
     }
 
-    const barthelComplete = barthelItems.every(item => barthelScores[item] !== undefined && barthelScores[item] !== null);
+    const barthelComplete = barthelItems.every((item) => barthelScores[item] !== undefined && barthelScores[item] !== null);
     if (!barthelComplete) {
       toast.error('Mohon lengkapi semua penilaian Barthel Index');
       return false;
@@ -134,7 +134,7 @@ export default function AssessmentForm() {
       toast.success('Assessment berhasil disimpan!', {
         description: 'Data telah tersimpan di cloud dan dapat diakses dari semua device',
       });
-      
+
       setTimeout(() => {
         navigate('/dashboard/history');
       }, 1500);
@@ -151,12 +151,7 @@ export default function AssessmentForm() {
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto px-2 sm:px-0">
       <div className="flex items-center gap-2 sm:gap-4">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigate('/dashboard')}
-          className="transition-transform hover:scale-110 flex-shrink-0"
-        >
+        <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="transition-transform hover:scale-110 flex-shrink-0">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="min-w-0 flex-1">
@@ -206,11 +201,7 @@ export default function AssessmentForm() {
 
         {showResult && (
           <div id="result-section" className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <AssessmentResult 
-              aksScore={calculateTotalAKS()} 
-              aiksScore={calculateTotalAIKS()}
-              barthelScore={calculateTotalBarthel()}
-            />
+            <AssessmentResult aksScore={calculateTotalAKS()} aiksScore={calculateTotalAIKS()} barthelScore={calculateTotalBarthel()} />
           </div>
         )}
       </div>
