@@ -16,18 +16,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'pnpm'
-      
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
+          cache: 'npm'
       
       - name: Install dependencies
-        run: pnpm install
+        run: npm install
       
       - name: Build project
-        run: pnpm build
+        run: npm run build
       
       - name: Deploy to Vercel
         uses: vercel/action@v2
