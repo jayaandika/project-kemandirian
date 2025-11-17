@@ -15,12 +15,17 @@ import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient();
 
+// GitHub Pages support
+const basename = import.meta.env.MODE === 'production' && window.location.hostname.includes('github.io') 
+  ? '/project-kemandirian' 
+  : '';
+
 const App = () => (
   <ThemeProvider defaultTheme="light" storageKey="assessment-theme">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <BrowserRouter>
+        <BrowserRouter basename={basename}>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route

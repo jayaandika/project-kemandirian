@@ -19,5 +19,7 @@ export default defineConfig(({ mode }) => ({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // GitHub Pages configuration
+  base: '/project-kemandirian/',
 }));
 
