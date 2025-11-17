@@ -20,6 +20,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
   // GitHub Pages configuration
-  base: '/project-kemandirian/',
+  base: mode === 'production' ? '/project-kemandirian/' : '/',
 }));
 
